@@ -45,6 +45,8 @@ header .t b{font-weight:800;letter-spacing:-.02em;font-size:17px}
 header .t b .ag{font-size:inherit;color:var(--g)}
 .brand .ag{color:#f6cf6a}
 /* app */
+nav.tabs .in{overflow-x:auto}nav.tabs button{flex:1 0 auto;min-width:56px}
+nav.tabs button{font-size:10px}nav.tabs button .i{font-size:18px}.arow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}.sheet .arow select{width:76px;padding:8px}.sheet textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;min-height:70px}
 header.top{padding-top:env(safe-area-inset-top)}#syncSt[data-st="0"]{color:var(--warn)}#syncSt[data-st="1"]{color:var(--g)}
 .two .btn{width:100%;padding:12px;font-size:15px}
 #app{display:none;padding-bottom:84px}
@@ -150,7 +152,7 @@ nav.tabs button{font-size:11px}
   <div class="brand"><div class="logo">AA</div><b>Adam <span class="ag">Agro</span></b></div>
   <p class="sub">Teste lado a lado de soja. Escolha a safra para entrar.</p>
   <button class="opt main" data-safra="soja"><span class="tag">Em andamento</span><h2>Safra Soja 2026/2027</h2><small id="launchInfo"></small></button>
-  <button class="opt" data-safra="safrinha"><span class="tag">Em breve</span><h2>Safrinha 2027</h2><small>Ainda sem dados lançados</small></button>
+  <button class="opt" data-safra="safrinha"><span class="tag">Milho</span><h2>Safrinha 2027</h2><small id="launchInfo2"></small></button>
 
   <button class="chip" id="cfgL" style="margin-top:14px;align-self:flex-start">⚙ Sincronização e backup</button>
 </div>
@@ -166,6 +168,7 @@ nav.tabs button{font-size:11px}
     <section class="view" id="v-clientes"></section>
     <section class="view" id="v-visitas"></section>
     <section class="view" id="v-colheita"></section>
+    <section class="view" id="v-avaliar"></section>
     <section class="view" id="v-rotas"></section>
     <section class="view" id="v-ganhos"></section>
     <section class="view" id="v-precos"></section>
@@ -175,6 +178,7 @@ nav.tabs button{font-size:11px}
     <button data-tab="clientes" class="soja"><span class="i">🌱</span>Clientes</button>
     <button data-tab="visitas" class="soja"><span class="i">📅</span>Visitas</button>
     <button data-tab="colheita" class="soja"><span class="i">🌾</span>Colheita</button>
+    <button data-tab="avaliar" class="soja"><span class="i">🔬</span>Avaliar</button>
     <button data-tab="rotas" class="soja"><span class="i">🧭</span>Rotas</button>
     <button data-tab="ganhos" class="soja"><span class="i">💰</span>Ganhos</button>
     <button data-tab="precos" class="saf" style="display:none"><span class="i">📊</span>Cotação</button>
@@ -193,18 +197,21 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const rota=g=>`https://www.google.com/maps/dir/?api=1&destination=${g[0]},${g[1]}`;
 var FP=0,FC={};
 const LS=(k,v)=>{try{if(v===undefined){const s=localStorage.getItem(k);return s==null?null:JSON.parse(s)}localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
-let META=LS('adam_meta')||{del:{}};
-let C=(LS('adam_clientes')||D.clientes).map(c=>({...c})), safra='soja', filtro='todos', busca='';
+let META=LS('adam_meta')||{del:{}};META.delS=META.delS||{};
+const SEEDSAF=[{"n": 1, "nome": "Clomar Quadrado Aiduk", "cult": "AG8000PRO4", "area": 78, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 2, "nome": "Arnoldo Kubelke", "cult": "AG8000PRO4", "area": 250, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 3, "nome": "Lucas Fernandes de Araujo", "cult": "AG8000PRO4", "area": 150, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 4, "nome": "Jairo Oscar da Silva", "cult": "AG8000PRO4", "area": 400, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 5, "nome": "Carlos Roberto de Moraes", "cult": "AG8000PRO4", "area": 100, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 6, "nome": "Izauro Quintiliano da Silva", "cult": "AG8450PRO4", "area": 50, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": [{"cult": "AG8600PRO4", "conc": "", "sacos": 200}, {"cult": "AG8000PRO4", "conc": "", "sacos": 400}]}, {"n": 7, "nome": "Silvano Roger da Silva", "cult": "AG8000PRO4", "area": 88, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": []}, {"n": 8, "nome": "Edson Corral Borille", "cult": "AG8000PRO4", "area": null, "conc": "", "cons": "Matheus", "ciclo": "", "gm": "", "plantio": null, "gps": null, "pop": null, "popt": null, "aut": null, "upd": 1, "hibs": [{"cult": "AG8450PRO4", "conc": "", "sacos": null}]}];
+const SAF={soja:(LS('adam_clientes')||D.clientes).map(c=>({...c})),safrinha:(LS('adam_clientes_saf')||SEEDSAF).map(c=>({...c}))};
+let C=SAF.soja, safra='soja', filtro='todos', busca='';
 const V=D.premio, BASE=[-17.7923,-50.9192];
 const FIXED=[['Rumo Jataí',['Clomar Quadrado']],['Rumo Montividiu',['Gilberto Cassio Vian','Danilo Augustin','Bruno Abreu Leão']]];
 function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
 
 async function save(c){c.upd=Date.now();persist();setTimeout(sync,150);return true}
-async function remove(n){META.del[n]=Date.now();persist();setTimeout(sync,150)}
-function persist(){LS('adam_clientes',C);LS('adam_meta',META)}
+async function remove(n){(safra==='soja'?META.del:META.delS)[n]=Date.now();persist();setTimeout(sync,150)}
+function persist(){SAF[safra]=C;LS('adam_clientes',SAF.soja);LS('adam_clientes_saf',SAF.safrinha);LS('adam_meta',META)}
 
 function stats(){return {pl:C.filter(c=>c.plantio).length,aut:C.filter(c=>c.aut==='Sim').length,gps:C.filter(c=>c.gps).length}}
 
+function cotCard(){return '<div class="sec">Cotação</div><div class="card vcard h" id="cotlink" style="cursor:pointer"><div class="row"><b>Cotação</b><span>Venda direta · Distribuição</span></div><small class="note" style="margin-top:4px">Toque para abrir os simuladores de preço.</small></div>'}
 function inicio(){
   const s=D.sementes,k=stats();
   const prox=C.filter(c=>c.plantio).sort((a,b)=>b.plantio.localeCompare(a.plantio)).slice(0,5);
@@ -220,11 +227,11 @@ function inicio(){
   <small class="note" style="margin-top:8px">Faltam ${C.length-k.pl} clientes plantar ou informar a data.</small></div>
   <div class="sec">Últimos plantios</div>
   ${prox.map(c=>`<div class="card"><div class="row"><span class="nm">${esc(c.nome)}</span><span class="m">${fd(c.plantio)}</span></div><div class="vs"><span class="c">${esc(c.cult)}</span><i>x</i>${esc(c.conc||'—')}</div></div>`).join('')}
-  <div class="sec">Controle de sementes</div>
+  ${safra!=='soja'?cotCard():''}${safra==='soja'?`<div class="sec">Controle de sementes</div>
   <div class="card"><div class="row"><b>${esc(s.cultivar)}</b><span class="m ok">${s.total} sc</span></div>
   <small class="note" style="margin-top:4px">NF ${esc(s.nf)}</small>
-  <div class="meta" style="margin-top:10px">${s.lista.map(x=>`<span class="m">${esc(x[0])} · ${x[1]}</span>`).join('')}</div></div>`;
-  const vl=$('#vlink');if(vl)vl.onclick=()=>tab('visitas');
+  <div class="meta" style="margin-top:10px">${s.lista.map(x=>`<span class="m">${esc(x[0])} · ${x[1]}</span>`).join('')}</div></div>`:''}`;
+  const vl=$('#vlink');if(vl)vl.onclick=()=>tab('visitas');const cl=$('#cotlink');if(cl)cl.onclick=()=>tab('precos');
 }
 
 function clientes(){
@@ -241,7 +248,7 @@ function clientes(){
   <div class="filters">${chip('todos','Todos')}${chip('plantado','Plantados')}${chip('falta','Sem plantio')}${chip('gps','Sem localização')}</div>
   ${f.map(c=>`<div class="card">
     <div class="row"><span class="nm">${c.n}. ${esc(c.nome)}</span><span style="display:flex;gap:6px">${c.gps?`<a class="btn" target="_blank" rel="noopener" href="${rota(c.gps)}">Ver rota</a>`:''}<button class="ed" data-e="${c.n}">Editar</button></span></div>
-    <div class="vs"><span class="c">${esc(c.cult)}</span><i>x</i>${esc(c.conc||'concorrente pendente')}</div>
+    ${hibList(c).map(h=>`<div class="vs"><span class="c">${esc(h.cult)}</span><i>x</i>${esc(h.conc||'concorrente a definir')}${h.sacos?` · ${h.sacos} sacos`:''}</div>`).join('')}
     <div class="meta">
       ${c.cons?`<span class="m">👤 ${esc(c.cons)}</span>`:'<span class="m w">sem consultor</span>'}
       ${c.gm?`<span class="m">GM ${esc(c.gm)}</span>`:''}${c.ciclo?`<span class="m">${esc(c.ciclo)} dias</span>`:''}
@@ -263,7 +270,7 @@ function sector(g){
 }
 function montaRotas(){
   const withG=C.filter(c=>c.gps),used=new Set(),out=[];
-  FIXED.forEach(([nome,l])=>{const p=l.map(n=>withG.find(c=>c.nome===n)).filter(Boolean);if(p.length){p.forEach(c=>used.add(c.n));out.push({d:nome,p})}});
+  (safra==='soja'?FIXED:[]).forEach(([nome,l])=>{const p=l.map(n=>withG.find(c=>c.nome===n)).filter(Boolean);if(p.length){p.forEach(c=>used.add(c.n));out.push({d:nome,p})}});
   const by={};
   withG.filter(c=>!used.has(c.n)).forEach(c=>{(by[sector(c.gps)]=by[sector(c.gps)]||[]).push(c)});
   Object.keys(by).forEach(k=>out.push({d:'Sentido '+k,p:by[k]}));
@@ -388,7 +395,7 @@ function colheita(){
 }
 function editColheita(n){
   const c=C.find(x=>x.n===n),novo=!c.colheita;
-  const h=c.colheita?JSON.parse(JSON.stringify(c.colheita)):{data:hoje(),esp:'0,5',base:'14',itens:[c.cult,c.conc].filter(Boolean).map(m=>({mat:m}))};
+  const h=c.colheita?JSON.parse(JSON.stringify(c.colheita)):{data:hoje(),esp:'0,5',base:'14',itens:hibList(c).flatMap(h=>[h.cult,h.conc]).filter((m,i,r)=>m&&r.indexOf(m)===i).map(m=>({mat:m}))};
   h.itens=h.itens||[];if(!h.itens.length)h.itens.push({mat:''});
   const inp=(id,l,v,ex='')=>`<label for="${id}">${l}</label><input id="${id}" value="${esc(v??'')}" ${ex}>`;
   const fi=(i,k,l,ex='inputmode="decimal"')=>inp('h_'+i+'_'+k,l,h.itens[i][k],`data-i="${i}" data-k="${k}" ${ex}`);
@@ -493,6 +500,7 @@ function edit(n){
   $('#form').innerHTML=`<h2>${novo?'Novo cliente':'Editar cliente'}</h2>
   ${f('nome','Nome do produtor',c.nome)}
   <div class="two"><div>${f('cult','Cultivar',c.cult)}</div><div>${f('conc','Concorrente',c.conc)}</div></div>
+  <div class="two"><div>${f('sacosP','Sacos do híbrido principal',c.area)}</div><div></div></div><div id="hibsBox"></div><button type="button" class="btn o" id="hibAdd" style="margin-top:8px;width:100%">+ Outro híbrido deste cliente</button>
   <div class="two"><div>${f('cons','Consultor',c.cons)}</div><div>${f('pop','População (pl/ha)',c.pop??c.popt,'inputmode="numeric"')}</div></div>
   <div class="two"><div>${f('gm','Grupo de maturação',c.gm)}</div><div>${f('ciclo','Ciclo (dias)',c.ciclo)}</div></div>
   <div class="two"><div><label>Data de plantio</label><input id="f_plantio" type="date" value="${c.plantio||''}"></div>
@@ -503,6 +511,11 @@ function edit(n){
   <input type="file" id="f_in1" accept="image/*" capture="environment" style="display:none"><input type="file" id="f_in2" accept="image/*" multiple style="display:none">
   <div class="acts">${novo?'':'<button class="btn d" id="del">Apagar</button>'}<button class="btn o" id="cancel">Cancelar</button><button class="btn" id="ok">Salvar</button></div>`;
   $('#sheet').classList.add('on');bindFotos(c.n);
+  const hibs=JSON.parse(JSON.stringify(c.hibs||[]));
+  const drawHibs=()=>{const bx=$('#hibsBox');bx.innerHTML=hibs.map((h,i)=>`<div class="two" style="margin-top:8px"><input data-hi="${i}" data-hk="cult" placeholder="Híbrido" value="${esc(h.cult)}"><div style="display:flex;gap:6px"><input data-hi="${i}" data-hk="conc" placeholder="Concorrente" value="${esc(h.conc)}"><input data-hi="${i}" data-hk="sacos" type="number" inputmode="numeric" placeholder="Sacos" style="max-width:80px" value="${esc(h.sacos||'')}"><button type="button" class="ed" data-hrm="${i}">✕</button></div></div>`).join('');
+    bx.querySelectorAll('[data-hi]').forEach(x=>x.oninput=()=>{hibs[+x.dataset.hi][x.dataset.hk]=x.value});
+    bx.querySelectorAll('[data-hrm]').forEach(x=>x.onclick=()=>{hibs.splice(+x.dataset.hrm,1);drawHibs()})};
+  drawHibs();$('#hibAdd').onclick=()=>{hibs.push({cult:'',conc:'',sacos:''});drawHibs()};
   $('#cancel').onclick=()=>$('#sheet').classList.remove('on');
   if(!novo)$('#del').onclick=async e=>{const b=e.currentTarget;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Toque de novo';return}await remove(n);C=C.filter(x=>x.n!==n);$('#sheet').classList.remove('on');renderAll()};
   $('#ok').onclick=async()=>{
@@ -510,32 +523,29 @@ function edit(n){
     if(!v('nome')){toast('Falta o nome');return}
     const g=parseGps(v('gps'));if(g===undefined){toast('Localização não reconhecida');return}
     const pr=v('pop').replace(/\./g,'');
-    Object.assign(c,{nome:v('nome'),cult:v('cult'),conc:v('conc')||null,cons:v('cons')||null,gm:v('gm')||null,ciclo:v('ciclo')||null,
-      pop:/^\d+$/.test(pr)?+pr:null,popt:/^\d+$/.test(pr)||!pr?null:v('pop'),plantio:v('plantio')||null,aut:v('aut')||null,gps:g});
+    const antes=hibList(c).map(h=>h.cult);Object.assign(c,{nome:v('nome'),cult:v('cult'),conc:v('conc')||null,cons:v('cons')||null,gm:v('gm')||null,ciclo:v('ciclo')||null,
+      pop:/^\d+$/.test(pr)?+pr:null,popt:/^\d+$/.test(pr)||!pr?null:v('pop'),plantio:v('plantio')||null,aut:v('aut')||null,gps:g,area:+v('sacosP')||null,hibs:hibs.filter(h=>h.cult&&h.cult.trim()).map(h=>({cult:h.cult.trim(),conc:(h.conc||'').trim(),sacos:+h.sacos||null}))});const depois=hibList(c).map(h=>h.cult);antes.forEach((o,i)=>{if(depois[i]&&depois[i]!==o)(c.avaliacoes||[]).forEach(a=>{if((a.hib||antes[0])===o)a.hib=depois[i]})});
     if(await save(c)){const i=C.findIndex(x=>x.n===c.n);if(i<0)C.push(c);else C[i]=c;C.sort((a,b)=>a.n-b.n);$('#sheet').classList.remove('on');renderAll();toast('Salvo')}
   };
 }
 
-function renderAll(){ if(safra!=='soja')return; inicio();clientes();visitas();colheita();rotas();ganhos(); $('#launchInfo').textContent=`${C.length} clientes · ${stats().pl} plantados`; }
+function launchInfos(){SAF[safra]=C;const f=a=>a.length+' clientes · '+a.filter(c=>c.plantio).length+' plantados';$('#launchInfo').textContent=f(SAF.soja);$('#launchInfo2').textContent=SAF.safrinha.length?f(SAF.safrinha):'Milho · clientes e cotação'}
+function renderAll(){ inicio();clientes();visitas();colheita();avaliar();rotas();ganhos(); launchInfos(); }
 function tab(t){
   $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  $('#fab').style.display=(t==='clientes'&&safra==='soja')?'block':'none';
+  $('#fab').style.display=(t==='clientes')?'block':'none';
   window.scrollTo(0,0);
 }
 $$('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 $('#fab').onclick=()=>edit(null);
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('on')};
 function entrar(s){
-  safra=s;$('#launch').style.display='none';$('#app').style.display='block';
-  if(s==='soja'){$('#safraNome').textContent='Safra Soja 2026/2027';renderAll();$('nav').style.display='';}
-  else{$('#safraNome').textContent='Safrinha 2027';
-    ['inicio','clientes','visitas','colheita','rotas','ganhos'].forEach(k=>$('#v-'+k).innerHTML='');
-    $('#v-inicio').innerHTML='<div class="empty"><b>Safrinha 2027</b>Ainda não há dados lançados. Quando começar, é só me mandar que eu lanço aqui.</div>';
-    $('#v-inicio').innerHTML+='<div class="card vcard h" id="cotlink" style="cursor:pointer;margin-top:16px"><div class="row"><b>Cotação</b><span>Venda direta · Distribuição</span></div><small class="note" style="margin-top:4px">Toque para abrir os simuladores de preço.</small></div>';
-    $('#cotlink').onclick=()=>tab('precos');precos();$('nav').style.display='';}
-  $$('nav .soja').forEach(b=>b.style.display=s==='soja'?'':'none');
+  SAF[safra]=C;safra=s;C=SAF[s];setListas();filtro='todos';busca='';
+  $('#launch').style.display='none';$('#app').style.display='block';
+  $('#safraNome').textContent=s==='soja'?'Safra Soja 2026/2027':'Safrinha 2027';
   $$('nav .saf').forEach(b=>b.style.display=s==='soja'?'none':'');
+  renderAll();if(s!=='soja')precos();
   tab('inicio');
 }
 $$('[data-safra]').forEach(b=>b.onclick=()=>entrar(b.dataset.safra));
@@ -554,34 +564,38 @@ function ghx(method,body){
   return fetch('https://api.github.com/repos/'+REPO+'/contents/'+FILE+(method==='GET'?'?t='+Date.now():''),
     {method,cache:'no-store',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
 }
+function mergeSet(local,remote,delL,delR){
+  const lm={},rm={};local.forEach(c=>lm[c.n]=c);remote.forEach(c=>rm[c.n]=c);
+  const del={...delR};Object.keys(delL).forEach(k=>{del[k]=Math.max(del[k]||0,delL[k])});
+  let push=false;const out=[];
+  new Set([...Object.keys(lm),...Object.keys(rm)]).forEach(k=>{
+    const l=lm[k],m=rm[k],lu=l?l.upd||0:-1,mu=m?m.upd||0:-1,d=del[k]||0;
+    const win=lu>mu?l:(m||l);
+    if(d&&d>=(win.upd||0)){if(m)push=true;return}
+    if(!m||lu>mu)push=true;
+    out.push(win);
+  });
+  out.sort((a,b)=>a.n-b.n);
+  Object.keys(del).forEach(k=>{if(del[k]!==delR[k])push=true});
+  return {out,del,push};
+}
 async function sync(retry){
   if(syncing)return;
   if(!tok()){stat('Sem token — toque em ⚙',false);return}
   if(!navigator.onLine){stat('Offline — salvo no celular',false);return}
   syncing=true;stat('Sincronizando…',true);
   try{
-    const r=await ghx('GET');let rem={clientes:[],del:{}},sha=null;
-    if(r.status===200){const j=await r.json();sha=j.sha;rem=JSON.parse(b64d(j.content));rem.clientes=rem.clientes||[];rem.del=rem.del||{}}
+    SAF[safra]=C;
+    const r=await ghx('GET');let rem={clientes:[],safrinha:[],del:{},delS:{}},sha=null;
+    if(r.status===200){const j=await r.json();sha=j.sha;rem=JSON.parse(b64d(j.content));rem.clientes=rem.clientes||[];rem.safrinha=rem.safrinha||[];rem.del=rem.del||{};rem.delS=rem.delS||{}}
     else if(r.status===401||r.status===403){stat('Token inválido ou sem permissão',false);return}
     else if(r.status!==404){stat('Erro '+r.status,false);return}
-    const lm={},rm={};C.forEach(c=>lm[c.n]=c);rem.clientes.forEach(c=>rm[c.n]=c);
-    const del={...rem.del};Object.keys(META.del).forEach(k=>{del[k]=Math.max(del[k]||0,META.del[k])});
-    let push=false;const out=[];
-    new Set([...Object.keys(lm),...Object.keys(rm)]).forEach(k=>{
-      const l=lm[k],m=rm[k],lu=l?l.upd||0:-1,mu=m?m.upd||0:-1,d=del[k]||0;
-      const win=lu>mu?l:(m||l);
-      if(d&&d>=(win.upd||0)){if(m)push=true;return}
-      if(!m||lu>mu)push=true;
-      out.push(win);
-    });
-    out.sort((a,b)=>a.n-b.n);
-    Object.keys(del).forEach(k=>{if(JSON.stringify(del[k])!==JSON.stringify(rem.del[k]))push=true});
-    META.del=del;
+    const m1=mergeSet(SAF.soja,rem.clientes,META.del,rem.del),m2=mergeSet(SAF.safrinha,rem.safrinha,META.delS||{},rem.delS);
     const busy=$('#sheet').classList.contains('on')||['area','s'].includes(document.activeElement.className)||document.activeElement.id==='busca';
-    const changed=JSON.stringify(out)!==JSON.stringify(C);
-    C=out;persist();
-    if(push||r.status===404){
-      const w=await ghx('PUT',{message:'sync '+new Date().toISOString(),content:b64e(JSON.stringify({v:1,atualizado:new Date().toISOString(),clientes:out,del},null,1)),sha:sha||undefined});
+    const changed=JSON.stringify(m1.out)!==JSON.stringify(SAF.soja)||JSON.stringify(m2.out)!==JSON.stringify(SAF.safrinha);
+    SAF.soja=m1.out;SAF.safrinha=m2.out;META.del=m1.del;META.delS=m2.del;C=SAF[safra];persist();
+    if(m1.push||m2.push||r.status===404){
+      const w=await ghx('PUT',{message:'sync '+new Date().toISOString(),content:b64e(JSON.stringify({v:2,atualizado:new Date().toISOString(),clientes:m1.out,safrinha:m2.out,del:m1.del,delS:m2.del},null,1)),sha:sha||undefined});
       if(w.status===409||w.status===422){syncing=false;if(!retry)return sync(true);stat('Conflito, tente de novo',false);return}
       if(!w.ok){stat('Erro ao enviar '+w.status,false);return}
     }
@@ -592,14 +606,14 @@ async function sync(retry){
   finally{syncing=false;subirFotos()}
 }
 function backupExport(){
-  const txt=JSON.stringify({v:1,exportado:new Date().toISOString(),clientes:C,del:META.del,sim:{vd:LS('adam_sim_vd'),canal:LS('adam_sim_canal')}},null,1);
+  const txt=JSON.stringify({v:1,exportado:new Date().toISOString(),clientes:SAF.soja,safrinha:SAF.safrinha,del:META.del,sim:{vd:LS('adam_sim_vd'),canal:LS('adam_sim_canal')}},null,1);
   const f=new File([txt],'adam-agro-backup-'+hoje()+'.json',{type:'application/json'});
   if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove();
 }
 function backupImport(file){
   const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!Array.isArray(j.clientes))throw 0;
-    const t=Date.now();C=j.clientes.map(c=>({...c,upd:t}));META.del={};persist();renderAll();toast('Backup importado');setTimeout(sync,200)}catch(e){toast('Arquivo inválido')}};r.readAsText(file);
+    const t=Date.now();SAF.soja=j.clientes.map(c=>({...c,upd:t}));if(Array.isArray(j.safrinha))SAF.safrinha=j.safrinha.map(c=>({...c,upd:t}));C=SAF[safra];META.del={};META.delS={};persist();renderAll();toast('Backup importado');setTimeout(sync,200)}catch(e){toast('Arquivo inválido')}};r.readAsText(file);
 }
 function cfg(){
   $('#form').innerHTML=`<h2>Sincronização</h2>
@@ -633,7 +647,7 @@ const fAll=()=>idb('readonly',s=>s.getAll()).then(x=>x||[]).catch(()=>[]);
 const fPut=o=>idb('readwrite',s=>s.put(o));
 const fDel=id=>idb('readwrite',s=>s.delete(id));
 async function refreshFotos(){
-  const L=await fAll();FP=L.filter(x=>!x.sent).length;FC={};L.forEach(x=>FC[x.n]=(FC[x.n]||0)+1);
+  const L=await fAll();FP=L.filter(x=>!x.sent).length;FC={};L.filter(x=>(x.s||'soja')===safra).forEach(x=>FC[x.n]=(FC[x.n]||0)+1);
   if(typeof stat==='function')stat();
 }
 function comprime(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
@@ -644,7 +658,7 @@ const pad=n=>String(n).padStart(2,'0');
 function nomeArq(f){const d=new Date(f.ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())+'_'+f.id.slice(-4)+'.jpg'}
 async function addFotos(n,files){
   let ok=0;
-  for(const file of files){try{const blob=await comprime(file);const ts=Date.now();await fPut({id:ts+''+Math.floor(1000+Math.random()*9000),n,ts,blob,sent:false});ok++}catch(e){}}
+  for(const file of files){try{const blob=await comprime(file);const ts=Date.now();await fPut({id:ts+''+Math.floor(1000+Math.random()*9000),n,s:safra,ts,blob,sent:false});ok++}catch(e){}}
   await refreshFotos();toast(ok?ok+' foto'+(ok>1?'s':'')+' salva'+(ok>1?'s':'')+' no celular':'Não consegui salvar a foto');
   setTimeout(()=>{try{sync()}catch(e){}},300);
 }
@@ -654,11 +668,11 @@ async function subirFotos(){
   try{
     const L=(await fAll()).filter(x=>!x.sent&&x.blob);
     for(const f of L){
-      const c=C.find(x=>x.n===f.n);if(!c||!String(c.nome||'').trim())continue;
-      const nome=c.nome.replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim(),path='fotos/'+nome+'/'+nomeArq(f);
+      SAF[safra]=C;const fs=f.s||'soja',c=SAF[fs].find(x=>x.n===f.n);if(!c||!String(c.nome||'').trim())continue;
+      const nome=c.nome.replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim(),path=(fs==='soja'?'fotos/':'fotos-safrinha/')+nome+'/'+nomeArq(f);
       const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+path.split('/').map(encodeURIComponent).join('/'),
         {method:'PUT',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'foto '+nome,content:await blobB64(f.blob)})});
-      if(r.ok||r.status===422){await fPut({id:f.id,n:f.n,ts:f.ts,sent:true,path});await refreshFotos()}
+      if(r.ok||r.status===422){await fPut({id:f.id,n:f.n,s:fs,ts:f.ts,sent:true,path});await refreshFotos()}
       else break;
     }
   }catch(e){}
@@ -666,7 +680,7 @@ async function subirFotos(){
 }
 async function drawFotos(n){
   const box=document.getElementById('fotosBox');if(!box)return;
-  const L=(await fAll()).filter(x=>x.n===n),pend=L.filter(x=>!x.sent);
+  const L=(await fAll()).filter(x=>x.n===n&&(x.s||'soja')===safra),pend=L.filter(x=>!x.sent);
   box.innerHTML=`<div style="font-size:13.5px;color:var(--mut);margin:2px 0 8px">${L.length?L.length+' foto'+(L.length>1?'s':'')+' · '+(pend.length?pend.length+' aguardando internet':'todas enviadas ✓'):'Nenhuma foto ainda'}</div>
   <div class="meta">${pend.map(x=>`<span style="position:relative;display:inline-block"><img data-fid="${x.id}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"><button type="button" data-fx="${x.id}" style="position:absolute;top:-6px;right:-6px;border:0;border-radius:99px;background:var(--warn);color:#fff;width:22px;height:22px;font-size:12px">✕</button></span>`).join('')}</div>`;
   pend.forEach(x=>{const im=box.querySelector(`[data-fid="${x.id}"]`);if(im&&x.blob)im.src=URL.createObjectURL(x.blob)});
@@ -681,9 +695,93 @@ function bindFotos(n){
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 refreshFotos();
 
+/* ---- Avaliações de campo (doenças, pragas, estande, altura, fotos) ---- */
+var DOENCAS,PRAGAS,ESTAGIOS;
+var ESTRESSE=['Nenhum','Hídrico (seca)','Calor','Encharcamento','Geada','Granizo','Fitotoxidez'];
+function setListas(){
+  if(safra==='soja'){
+    DOENCAS=['Ferrugem-asiática','Mancha-alvo','Oídio (pó-branco)','Mofo-branco','Antracnose','Mancha-parda','Mancha-púrpura (cercospora)','Mancha olho-de-rã'];
+    PRAGAS=['Percevejo-marrom','Percevejo-verde','Percevejo-barriga-verde','Lagarta-da-soja (Anticarsia)','Falsa-medideira','Helicoverpa','Spodoptera','Mosca-branca'];
+    ESTAGIOS=['VE','VC','V1','V2','V3','V4','V5','V6','V7','V8 ou mais','R1','R2','R3','R4','R5','R6','R7','R8'];
+  }else{
+    DOENCAS=['Mancha-branca','Mancha-cinzenta (cercosporiose)','Ferrugem-polissora','Ferrugem-comum','Mancha-de-turcicum (helmintosporiose)','Enfezamentos (pálido e vermelho)','Podridão-de-colmo','Podridão-de-espigas'];
+    PRAGAS=['Cigarrinha-do-milho','Lagarta-do-cartucho','Helicoverpa','Lagarta-elasmo','Lagarta-rosca','Percevejo-barriga-verde','Pulgão','Broca-do-colmo'];
+    ESTAGIOS=['VE','V1','V2','V3','V4','V5','V6','V8','V10','V12','VT','R1','R2','R3','R4','R5','R6'];
+  }
+}
+setListas();
+function hibList(c){return [{cult:c.cult,conc:c.conc,sacos:c.area},...(c.hibs||[])].filter(h=>h.cult)}
+const f1c=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+function extrasAv(g){const base=g==='doencas'?DOENCAS:PRAGAS,s=new Set();C.forEach(c=>(c.avaliacoes||[]).forEach(a=>Object.keys(a[g]||{}).forEach(k=>{if(!base.includes(k))s.add(k)})));return [...s].sort()}
+function mediaAv(c,g,hib){const base=(hibList(c)[0]||{}).cult;const L=(c.avaliacoes||[]).filter(a=>!hib||(a.hib||base)===hib);if(!L.length)return[];const ks=new Set();L.forEach(a=>Object.keys(a[g]||{}).forEach(k=>ks.add(k)));
+  return [...ks].map(k=>({k,m:L.reduce((s,a)=>s+((a[g]||{})[k]||0),0)/L.length})).filter(x=>x.m>0).sort((a,b)=>b.m-a.m)}
+function avaliar(){
+  if(typeof DOENCAS==='undefined'||!$('#v-avaliar'))return;
+  const L=C.slice().sort((a,b)=>(b.avaliacoes||[]).length-(a.avaliacoes||[]).length||(b.plantio?1:0)-(a.plantio?1:0)||a.n-b.n);
+  const tot=C.reduce((s,c)=>s+(c.avaliacoes||[]).length,0);
+  $('#v-avaliar').innerHTML=`<div class="card"><b>${tot} ${tot===1?'avaliação lançada':'avaliações lançadas'}</b><small class="note" style="margin-top:4px">Notas de 0 a 5: 0 ausente · 1-2 baixa · 3 média · 4-5 alta. As médias entram no fechamento de safra.</small></div>`+
+  L.map(c=>{const av=(c.avaliacoes||[]).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')),H0=hibList(c),base=(H0[0]||{}).cult,H=[...H0,...[...new Set(av.map(x=>x.hib).filter(x=>x&&!H0.some(h=>h.cult===x)))].map(x=>({cult:x,conc:''}))];
+    const blocos=H.map(h=>{const n=av.filter(a=>(a.hib||base)===h.cult).length,d=mediaAv(c,'doencas',h.cult),p=mediaAv(c,'pragas',h.cult);
+      return `<div style="margin-top:10px">${H.length>1?`<div style="font-weight:700;font-size:14px">${esc(h.cult)} · ${n} aval.</div>`:''}
+      ${d.length?`<div style="margin-top:4px;font-size:13.5px"><b>Média doenças:</b> ${d.slice(0,4).map(x=>esc(x.k)+' '+f1c(x.m)).join(' · ')}</div>`:''}
+      ${p.length?`<div style="margin-top:4px;font-size:13.5px"><b>Média pragas:</b> ${p.slice(0,4).map(x=>esc(x.k)+' '+f1c(x.m)).join(' · ')}</div>`:''}</div>`}).join('');
+    return `<div class="card"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm">${esc(c.nome)}</div><div style="font-size:14px;color:var(--mut)">${H.map(h=>esc(h.cult)).join(' · ')}</div></div><button class="btn" data-av="${c.n}">+ Avaliação</button></div>
+    <div class="meta" style="margin-top:8px">${av.length?`<span class="m ok">${av.length} ${av.length>1?'avaliações':'avaliação'}</span>`:'<span class="m w">sem avaliação</span>'}${FC[c.n]?`<span class="m">📷 ${FC[c.n]}</span>`:''}</div>
+    ${blocos}
+    ${av.length?`<div class="meta" style="margin-top:10px">${av.map(a=>`<button class="m" data-ae="${c.n}:${a.id}">${fd(a.data)||'sem data'}${H.length>1?' · '+esc(a.hib||base):''}${a.estagio?' · '+esc(a.estagio):''}</button>`).join('')}</div>`:''}</div>`}).join('');
+  $$('#v-avaliar [data-av]').forEach(b=>b.onclick=()=>editAval(+b.dataset.av));
+  $$('#v-avaliar [data-ae]').forEach(b=>{const[n,id]=b.dataset.ae.split(':');b.onclick=()=>editAval(+n,id)});
+}
+function editAval(n,id){
+  const c=C.find(x=>x.n===n),novo=!id;
+  const H=hibList(c);
+  const a=novo?{id:String(Date.now()),hib:(H[0]||{}).cult||'',data:hoje(),estagio:'',estande:'',altura:'',vigor:'',estresse:'Nenhum',daninhas:0,doencas:{},pragas:{},obs:''}
+    :JSON.parse(JSON.stringify((c.avaliacoes||[]).find(x=>x.id===id)));
+  const add={doencas:[],pragas:[]};
+  const opts=(arr,cur)=>arr.map(v=>`<option ${v===cur?'selected':''}>${esc(v)}</option>`).join('');
+  const notas=(cur)=>[0,1,2,3,4,5].map(v=>`<option ${v===(cur||0)?'selected':''}>${v}</option>`).join('');
+  const lista=(g,base)=>{const ks=[...base,...extrasAv(g),...Object.keys(a[g]||{}),...add[g]].filter((k,i,r)=>r.indexOf(k)===i);
+    return ks.map(k=>`<div class="arow"><span>${esc(k)}</span><select data-g="${g}" data-k="${esc(k)}">${notas((a[g]||{})[k])}</select></div>`).join('')};
+  const close=()=>$('#sheet').classList.remove('on');
+  const draw=()=>{
+    $('#form').innerHTML=`<h2>Avaliação · ${esc(c.nome)}</h2>
+    ${H.length>1?`<label>Híbrido avaliado</label><select id="a_hib">${H.map(h=>`<option value="${esc(h.cult)}" ${h.cult===(a.hib||H[0].cult)?'selected':''}>${esc(h.cult)}</option>`).join('')}</select>`:''}
+    <div class="two"><div><label>Data</label><input id="a_data" type="date" value="${esc(a.data||'')}"></div><div><label>Estágio</label><select id="a_est"><option value="">—</option>${opts(ESTAGIOS,a.estagio)}</select></div></div>
+    <div class="two"><div><label>Estande (plantas/m)</label><input id="a_estande" inputmode="decimal" value="${esc(a.estande)}"></div><div><label>Altura (cm)</label><input id="a_alt" inputmode="decimal" value="${esc(a.altura)}"></div></div>
+    <div class="two"><div><label>Vigor / uniformidade (1-5)</label><select id="a_vigor"><option value="">—</option>${[1,2,3,4,5].map(v=>`<option ${String(v)===String(a.vigor)?'selected':''}>${v}</option>`).join('')}</select></div><div><label>Estresse</label><select id="a_estr">${opts(ESTRESSE,a.estresse)}</select></div></div>
+    <div class="sec">Doenças (nota 0-5)</div>${lista('doencas',DOENCAS)}
+    <div class="two" style="margin-top:8px"><input id="a_nd" placeholder="Outra doença"><button type="button" class="btn o" data-add="doencas">+ Adicionar</button></div>
+    <div class="sec">Pragas (nota 0-5)</div>${lista('pragas',PRAGAS)}
+    <div class="two" style="margin-top:8px"><input id="a_np" placeholder="Outra praga"><button type="button" class="btn o" data-add="pragas">+ Adicionar</button></div>
+    <div class="sec">Plantas daninhas</div><div class="arow"><span>Nota 0-5</span><select id="a_dan">${notas(a.daninhas)}</select></div>
+    <label>Observações de campo</label><textarea id="a_obs">${esc(a.obs)}</textarea>
+    <label>Fotos</label><div id="fotosBox"></div>
+    <div class="two"><button type="button" class="btn o" id="f_cam">📷 Tirar foto</button><button type="button" class="btn o" id="f_gal">🖼 Galeria</button></div>
+    <input type="file" id="f_in1" accept="image/*" capture="environment" style="display:none"><input type="file" id="f_in2" accept="image/*" multiple style="display:none">
+    <div class="acts">${novo?'':'<button class="btn d" id="a_del">Apagar</button>'}<button class="btn o" id="a_cancel">Cancelar</button><button class="btn" id="a_ok">Salvar</button></div>`;
+    const bind=(id,k)=>{$('#'+id).oninput=e=>{a[k]=e.target.value.trim()}};
+    bind('a_data','data');bind('a_estande','estande');bind('a_alt','altura');bind('a_obs','obs');
+    if($('#a_hib'))$('#a_hib').onchange=e=>a.hib=e.target.value;
+    $('#a_est').onchange=e=>a.estagio=e.target.value;$('#a_vigor').onchange=e=>a.vigor=e.target.value;$('#a_estr').onchange=e=>a.estresse=e.target.value;
+    $('#a_dan').onchange=e=>a.daninhas=+e.target.value;
+    $$('#form [data-g]').forEach(s=>s.onchange=()=>{const g=s.dataset.g,k=s.dataset.k,v=+s.value;a[g]=a[g]||{};if(v>0)a[g][k]=v;else delete a[g][k]});
+    $$('#form [data-add]').forEach(b=>b.onclick=()=>{const g=b.dataset.add,inp=$(g==='doencas'?'#a_nd':'#a_np'),nome=inp.value.trim();if(!nome)return;if(!add[g].includes(nome))add[g].push(nome);draw()});
+    $('#a_cancel').onclick=close;
+    if(!novo)$('#a_del').onclick=async e=>{const b=e.currentTarget;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Toque de novo';return}
+      c.avaliacoes=(c.avaliacoes||[]).filter(x=>x.id!==id);await save(c);close();renderAll();toast('Avaliação apagada')};
+    $('#a_ok').onclick=async()=>{
+      if(!a.data){toast('Falta a data');return}
+      const L=(c.avaliacoes||[]).filter(x=>x.id!==a.id);L.push(a);L.sort((x,y)=>(x.data||'').localeCompare(y.data||''));
+      c.avaliacoes=L;if(await save(c)){close();renderAll();toast('Avaliação salva')}};
+    bindFotos(n);
+  };
+  draw();$('#sheet').classList.add('on');
+}
+avaliar();
+
 sync();
 
-$('#launchInfo').textContent=`${C.length} clientes · ${stats().pl} plantados`;
+launchInfos();
 </script>
 
 </body></html>
