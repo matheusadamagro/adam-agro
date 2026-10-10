@@ -545,6 +545,7 @@ function entrar(s){
   $('#launch').style.display='none';$('#app').style.display='block';
   $('#safraNome').textContent=s==='soja'?'Safra Soja 2026/2027':'Safrinha 2027';
   $$('nav .saf').forEach(b=>b.style.display=s==='soja'?'none':'');
+  $('[data-tab=ganhos]').style.display=s==='soja'?'':'none';
   renderAll();if(s!=='soja')precos();
   tab('inicio');
 }
