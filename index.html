@@ -46,6 +46,7 @@ header .t b .ag{font-size:inherit;color:var(--g)}
 .brand .ag{color:#f6cf6a}
 /* app */
 header.top{padding-top:env(safe-area-inset-top)}#syncSt[data-st="0"]{color:var(--warn)}#syncSt[data-st="1"]{color:var(--g)}
+.two .btn{width:100%;padding:12px;font-size:15px}
 #app{display:none;padding-bottom:84px}
 header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 header .in{display:flex;align-items:center;gap:10px;padding:12px 16px;max-width:720px;margin:0 auto}
@@ -190,6 +191,7 @@ const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fd=s=>{if(!s)return null;const[a,b,c]=s.split('-');return c+'/'+b+'/'+a};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rota=g=>`https://www.google.com/maps/dir/?api=1&destination=${g[0]},${g[1]}`;
+var FP=0,FC={};
 const LS=(k,v)=>{try{if(v===undefined){const s=localStorage.getItem(k);return s==null?null:JSON.parse(s)}localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
 let META=LS('adam_meta')||{del:{}};
 let C=(LS('adam_clientes')||D.clientes).map(c=>({...c})), safra='soja', filtro='todos', busca='';
@@ -246,7 +248,7 @@ function clientes(){
       ${c.pop?`<span class="m">${fmt(c.pop)} pl/ha</span>`:(c.popt?`<span class="m">${esc(c.popt)}</span>`:'<span class="m w">sem população</span>')}
       ${c.plantio?`<span class="m ok">Plantio ${fd(c.plantio)}</span>`:'<span class="m w">sem plantio</span>'}
       ${c.aut==='Sim'?'<span class="m ok">Autorizou ✓</span>':'<span class="m w">autorização pendente</span>'}
-      ${c.gps?'':'<span class="m w">sem GPS</span>'}
+      ${c.gps?'':'<span class="m w">sem GPS</span>'}${FC[c.n]?`<span class="m">📷 ${FC[c.n]}</span>`:''}
     </div></div>`).join('')||'<div class="empty">Nada encontrado.</div>'}`;
   $('#busca').oninput=e=>{busca=e.target.value.toLowerCase();const p=e.target.selectionStart;clientes();const b=$('#busca');b.focus();b.setSelectionRange(p,p)};
   $$('[data-f]').forEach(b=>b.onclick=()=>{filtro=b.dataset.f;clientes()});
@@ -496,8 +498,11 @@ function edit(n){
   <div class="two"><div><label>Data de plantio</label><input id="f_plantio" type="date" value="${c.plantio||''}"></div>
   <div><label>Autorizou divulgação</label><select id="f_aut"><option value="">—</option><option ${c.aut==='Sim'?'selected':''}>Sim</option><option ${c.aut==='Não'?'selected':''}>Não</option></select></div></div>
   ${f('gps','Localização (cole lat, long ou 17°36\'50.9"S 51°22\'45.5"W)',c.gps?c.gps.join(', '):'')}
+  <label>Fotos</label><div id="fotosBox"></div>
+  <div class="two"><button type="button" class="btn o" id="f_cam">📷 Tirar foto</button><button type="button" class="btn o" id="f_gal">🖼 Galeria</button></div>
+  <input type="file" id="f_in1" accept="image/*" capture="environment" style="display:none"><input type="file" id="f_in2" accept="image/*" multiple style="display:none">
   <div class="acts">${novo?'':'<button class="btn d" id="del">Apagar</button>'}<button class="btn o" id="cancel">Cancelar</button><button class="btn" id="ok">Salvar</button></div>`;
-  $('#sheet').classList.add('on');
+  $('#sheet').classList.add('on');bindFotos(c.n);
   $('#cancel').onclick=()=>$('#sheet').classList.remove('on');
   if(!novo)$('#del').onclick=async e=>{const b=e.currentTarget;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Toque de novo';return}await remove(n);C=C.filter(x=>x.n!==n);$('#sheet').classList.remove('on');renderAll()};
   $('#ok').onclick=async()=>{
@@ -543,7 +548,8 @@ let syncing=false,lastSync=LS('adam_last')||null;
 const tok=()=>{try{return localStorage.getItem('adam_token')||''}catch(e){return ''}};
 const b64d=s=>decodeURIComponent(escape(atob(s.replace(/\s/g,''))));
 const b64e=s=>btoa(unescape(encodeURIComponent(s)));
-function stat(t,ok){const e=$('#syncSt');if(e){e.textContent=t;e.dataset.st=ok?'1':'0'}const d=$('#cfgSt');if(d)d.textContent=t}
+let lastTxt='Sincronizar';
+function stat(t,ok){if(t!==undefined)lastTxt=t;const x=lastTxt+(FP?' · 📷'+FP:'');const e=$('#syncSt');if(e){e.textContent=x;if(ok!==undefined)e.dataset.st=ok?'1':'0'}const d=$('#cfgSt');if(d)d.textContent=x}
 function ghx(method,body){
   return fetch('https://api.github.com/repos/'+REPO+'/contents/'+FILE+(method==='GET'?'?t='+Date.now():''),
     {method,cache:'no-store',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
@@ -583,7 +589,7 @@ async function sync(retry){
     stat('Sincronizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),true);
     if(changed&&!busy)renderAll();
   }catch(e){stat('Sem conexão — salvo no celular',false)}
-  finally{syncing=false}
+  finally{syncing=false;subirFotos()}
 }
 function backupExport(){
   const txt=JSON.stringify({v:1,exportado:new Date().toISOString(),clientes:C,del:META.del,sim:{vd:LS('adam_sim_vd'),canal:LS('adam_sim_canal')}},null,1);
@@ -618,8 +624,64 @@ window.addEventListener('online',()=>sync());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 setInterval(()=>{if(!document.hidden)sync()},60000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-sync();
 
+/* ---- Fotos (guardadas no celular e enviadas ao GitHub quando há internet) ---- */
+let subindo=false;
+const IDB=()=>new Promise((res,rej)=>{const r=indexedDB.open('adam_fotos',1);r.onupgradeneeded=()=>r.result.createObjectStore('f',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idb=async(mode,fn)=>{const d=await IDB();return new Promise((res,rej)=>{const t=d.transaction('f',mode),r=fn(t.objectStore('f'));t.oncomplete=()=>{d.close();res(r&&r.result)};t.onerror=()=>rej(t.error)})};
+const fAll=()=>idb('readonly',s=>s.getAll()).then(x=>x||[]).catch(()=>[]);
+const fPut=o=>idb('readwrite',s=>s.put(o));
+const fDel=id=>idb('readwrite',s=>s.delete(id));
+async function refreshFotos(){
+  const L=await fAll();FP=L.filter(x=>!x.sent).length;FC={};L.forEach(x=>FC[x.n]=(FC[x.n]||0)+1);
+  if(typeof stat==='function')stat();
+}
+function comprime(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);
+    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(u);cv.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
+  im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
+const pad=n=>String(n).padStart(2,'0');
+function nomeArq(f){const d=new Date(f.ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())+'_'+f.id.slice(-4)+'.jpg'}
+async function addFotos(n,files){
+  let ok=0;
+  for(const file of files){try{const blob=await comprime(file);const ts=Date.now();await fPut({id:ts+''+Math.floor(1000+Math.random()*9000),n,ts,blob,sent:false});ok++}catch(e){}}
+  await refreshFotos();toast(ok?ok+' foto'+(ok>1?'s':'')+' salva'+(ok>1?'s':'')+' no celular':'Não consegui salvar a foto');
+  setTimeout(()=>{try{sync()}catch(e){}},300);
+}
+const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
+async function subirFotos(){
+  if(subindo||!tok()||!navigator.onLine)return;subindo=true;
+  try{
+    const L=(await fAll()).filter(x=>!x.sent&&x.blob);
+    for(const f of L){
+      const c=C.find(x=>x.n===f.n);if(!c||!String(c.nome||'').trim())continue;
+      const nome=c.nome.replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim(),path='fotos/'+nome+'/'+nomeArq(f);
+      const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+path.split('/').map(encodeURIComponent).join('/'),
+        {method:'PUT',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'foto '+nome,content:await blobB64(f.blob)})});
+      if(r.ok||r.status===422){await fPut({id:f.id,n:f.n,ts:f.ts,sent:true,path});await refreshFotos()}
+      else break;
+    }
+  }catch(e){}
+  finally{subindo=false;refreshFotos()}
+}
+async function drawFotos(n){
+  const box=document.getElementById('fotosBox');if(!box)return;
+  const L=(await fAll()).filter(x=>x.n===n),pend=L.filter(x=>!x.sent);
+  box.innerHTML=`<div style="font-size:13.5px;color:var(--mut);margin:2px 0 8px">${L.length?L.length+' foto'+(L.length>1?'s':'')+' · '+(pend.length?pend.length+' aguardando internet':'todas enviadas ✓'):'Nenhuma foto ainda'}</div>
+  <div class="meta">${pend.map(x=>`<span style="position:relative;display:inline-block"><img data-fid="${x.id}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"><button type="button" data-fx="${x.id}" style="position:absolute;top:-6px;right:-6px;border:0;border-radius:99px;background:var(--warn);color:#fff;width:22px;height:22px;font-size:12px">✕</button></span>`).join('')}</div>`;
+  pend.forEach(x=>{const im=box.querySelector(`[data-fid="${x.id}"]`);if(im&&x.blob)im.src=URL.createObjectURL(x.blob)});
+  box.querySelectorAll('[data-fx]').forEach(b=>b.onclick=async()=>{await fDel(b.dataset.fx);await refreshFotos();drawFotos(n)});
+}
+function bindFotos(n){
+  drawFotos(n);
+  const go=async e=>{const fs=[...e.target.files];e.target.value='';if(fs.length){await addFotos(n,fs);drawFotos(n)}};
+  $('#f_cam').onclick=()=>$('#f_in1').click();$('#f_gal').onclick=()=>$('#f_in2').click();
+  $('#f_in1').onchange=go;$('#f_in2').onchange=go;
+}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+refreshFotos();
+
+sync();
 
 $('#launchInfo').textContent=`${C.length} clientes · ${stats().pl} plantados`;
 </script>
