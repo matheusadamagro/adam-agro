@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Adam Agro</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1f5a3a">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Adam Agro"><meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"></head><body>
+<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"></head><body class="lk">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap">
 <style>
 :root{--bg:#f3f1ea;--card:#fffefa;--ink:#1c2a20;--mut:#6b7468;--line:#e2dfd3;--g:#1f5a3a;--g2:#2f7a4f;--gold:#c8962a;--soft:#e8efe6;--warn:#b4541c}
@@ -163,15 +163,48 @@ nav.tabs button{font-size:11px}
 .sc-badge{display:inline-block;background:var(--g);color:#fff;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:700;margin-bottom:6px}
 #scan select,#scan input,#scan textarea{width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
 #scan label{display:block;font-size:12.5px;color:var(--mut);margin:10px 0 4px}
+
+body.lk #launch,body.lk #app,body.lk #scan{display:none !important}
+#login{position:fixed;inset:0;z-index:50;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;padding:32px 20px;background:#0f2417}
+#login[hidden]{display:none}
+#login::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(10,28,18,.40),rgba(10,28,18,.30)),url(fundo-soja-milho.jpg) center/cover no-repeat}
+@media (orientation:portrait){#login::before{background-position:center,24% center}}
+#login .mk{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 auto 18px;width:100%;max-width:420px}
+#login .mk img{width:110px;height:110px;margin-left:-8px}
+#login .mk b{font:800 38px/1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.035em;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+#login .mk b span{color:#f3c76b}
+#login .mk p{margin:0;color:#fff;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.75)}
+.lbox{width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbox form{display:flex;flex-direction:column;gap:12px}
+.lbox input[type=email],.lbox input[type=password]{width:100%;padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(15,36,23,.72);color:#fff;font:inherit;font-size:16px;backdrop-filter:blur(8px)}
+.lbox input::placeholder{color:#9fb5a6}
+.lg-tabs{display:flex;gap:6px;background:rgba(15,36,23,.72);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:4px;backdrop-filter:blur(8px)}
+.lg-tabs button{flex:1;border:0;background:transparent;color:#b6c9bb;padding:9px;border-radius:9px;font-weight:600;font-size:15px}
+.lg-tabs button.on{background:#f3c76b;color:#14281b}
+.lg-chk{display:flex;align-items:center;gap:9px;color:#e6efe8;font-size:14.5px}
+.lg-chk input{width:20px;height:20px;accent-color:#f3c76b}
+.lg-btn{border:0;border-radius:12px;padding:15px;background:#f3c76b;color:#14281b;font:700 17px system-ui,sans-serif}
+.lg-btn:disabled{opacity:.6}
+.lg-lnk{background:none;border:0;color:#e6efe8;text-decoration:underline;padding:6px;font-size:14.5px}
+.lg-err{margin:0;color:#ffb3a9;font-size:14px}
+.lg-hi{color:#e6efe8;font-size:15px}.lg-hi b{display:block;color:#fff;font-size:18px;overflow-wrap:anywhere}
+.brand .mkimg{width:72px;height:72px;margin:-8px -6px -8px -10px}
+header .t{display:flex}header .mkh{width:40px;height:40px;margin:-4px -2px -4px -6px}
 </style>
 
+<div id="login" hidden>
+  <div class="mk"><img src="logo-ma.png" alt=""><b>Adam <span>Agro</span></b><p>Entre para continuar.</p></div>
+  <div class="lbox" id="lgBox"></div>
+</div>
+<div class="sheet" id="ctSheet"><div class="p"><h3 style="margin:0 0 10px">Conta</h3><div id="ctBody"></div><span id="ctMail" hidden></span></div></div>
 <div id="launch" class="wrap">
-  <div class="brand"><div class="logo">AA</div><b>Adam <span class="ag">Agro</span></b></div>
+  <div class="brand"><img class="mkimg" src="logo-ma.png" alt=""><b>Adam <span class="ag">Agro</span></b></div>
   <p class="sub">Teste lado a lado de soja. Escolha a safra para entrar.</p>
   <button class="opt main" data-safra="soja"><span class="tag">Em andamento</span><h2>Safra Soja 2026/2027</h2><small id="launchInfo"></small></button>
   <button class="opt" data-safra="safrinha"><span class="tag">Milho</span><h2>Safrinha 2027</h2><small id="launchInfo2"></small></button>
 
   <button class="opt" id="openScan"><span class="tag">Novo</span><h2>📷 Diagnóstico Agro</h2><small>Foto da folha → doença ou praga + produto do estoque</small></button>
+  <button class="chip" id="openConta" style="margin-top:14px;align-self:flex-start">🔒 Conta e Face ID</button>
   <button class="chip" id="cfgL" style="margin-top:14px;align-self:flex-start">⚙ Sincronização e backup</button>
 </div>
 
@@ -203,7 +236,7 @@ nav.tabs button{font-size:11px}
 <div class="sheet" id="esSheet"><div class="p" id="esForm"></div></div>
 <div id="app">
   <header class="top"><div class="in">
-    <div class="logo">AA</div>
+    <img class="mkh" src="logo-ma.png" alt="">
     <div class="t"><b>Adam <span class="ag">Agro</span></b><span id="safraNome"></span></div>
     <button class="chip" id="syncSt" data-st="0" style="font-size:12px;max-width:108px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sincronizar</button><button class="chip" id="cfg">⚙</button><button class="chip" id="trocar">Safra</button>
   </div></header>
@@ -926,6 +959,123 @@ $('#esSheet').onclick=e=>{if(e.target.id==='esSheet')$('#esSheet').classList.rem
 })();
 
 
+
+
+/* ---- Adam Agro: conta, Face ID e sessão ---- */
+(function(){
+const SB_URL='https://llcfcvywlfuenmsjmytv.supabase.co',SB_KEY='sb_publishable_S_MQzXQJeHmwNaCX6N4a1A_NW7hmokZ';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const g=k=>{try{return localStorage.getItem(k)}catch(e){return null}},s=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},d=k=>{try{localStorage.removeItem(k)}catch(e){}};
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=x=>Uint8Array.from(atob(x.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+let SES=null,KEEP=true,modo='entrar';
+function load(){let x=null;try{x=JSON.parse(g('adam_ses')||sessionStorage.getItem('adam_ses')||'null')}catch(e){}if(x&&x.uid){SES=x;KEEP=!!g('adam_ses')}}
+function save(){d('adam_ses');try{sessionStorage.removeItem('adam_ses')}catch(e){}if(!SES)return;if(KEEP)s('adam_ses',JSON.stringify(SES));else try{sessionStorage.setItem('adam_ses',JSON.stringify(SES))}catch(e){}}
+function setSes(j){SES={at:j.access_token,rt:j.refresh_token,exp:Date.now()+((j.expires_in||3600)*1000)-60000,uid:j.user.id,email:j.user.email};save()}
+async function auth(path,body){const r=await fetch(SB_URL+path,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,status:r.status,j}}
+const ERR={'Invalid login credentials':'E-mail ou senha incorretos.','Email not confirmed':'Confirme seu e-mail primeiro. Procure a mensagem na caixa de entrada.','User already registered':'Já existe uma conta com esse e-mail. Toque em Entrar.','Password should be at least 6 characters.':'A senha precisa de pelo menos 6 caracteres.','Signups not allowed for this instance':'O cadastro de novas contas está fechado.'};
+const errMsg=r=>ERR[r.j.msg]||ERR[r.j.message]||ERR[r.j.error_description]||(r.status===429?'Muitas tentativas. Espere um pouco.':'Não deu certo. Confira os dados e a internet.');
+/* token válido para as chamadas ao banco (próximas etapas) */
+window.AdamAuth={
+  get ses(){return SES},url:SB_URL,key:SB_KEY,
+  async token(){
+    if(!SES)throw new Error('sem sessão');
+    if(Date.now()<SES.exp)return SES.at;
+    const r=await auth('/auth/v1/token?grant_type=refresh_token',{refresh_token:SES.rt});
+    if(r.ok){setSes(r.j);return SES.at}
+    if([400,401,403].includes(r.status)){SES=null;save();lock('Sua sessão expirou. Entre de novo.')}
+    throw new Error('rede');
+  }
+};
+const face=()=>g('adam_face_'+(SES?SES.uid:''));
+const L=$('#login');
+function lock(aviso){document.body.classList.add('lk');L.hidden=false;view(aviso)}
+function view(aviso){
+  const tem=!!SES;
+  $('#lgBox').innerHTML=tem?
+   `<div class="lg-hi">Olá,<b>${esc(SES.email)}</b></div>
+    <button class="lg-btn" id="lgEnter">${face()?'Entrar com Face ID':'Entrar'}</button>
+    ${aviso?`<p class="lg-err">${esc(aviso)}</p>`:''}
+    <button class="lg-lnk" id="lgOut">Entrar com outra conta</button>`
+  :`<div class="lg-tabs"><button data-m="entrar" class="${modo==='entrar'?'on':''}">Entrar</button><button data-m="criar" class="${modo==='criar'?'on':''}">Criar conta</button></div>
+    <form id="lgForm" autocomplete="on">
+      <input id="lgEmail" name="username" type="email" inputmode="email" autocomplete="username" placeholder="E-mail" required autocapitalize="off" autocorrect="off">
+      <input id="lgPass" name="password" type="password" autocomplete="${modo==='entrar'?'current-password':'new-password'}" placeholder="Senha" required minlength="6">
+      <label class="lg-chk"><input type="checkbox" id="lgKeep" checked> Continuar conectado</label>
+      <p class="lg-err" id="lgErr">${aviso?esc(aviso):''}</p>
+      <button class="lg-btn" id="lgGo" type="submit">${modo==='entrar'?'Entrar':'Criar conta'}</button>
+    </form>
+    ${modo==='entrar'?'<button class="lg-lnk" id="lgForgot">Esqueci a senha</button>':''}`;
+  if(tem){
+    $('#lgEnter').onclick=entrarSessao;
+    $('#lgOut').onclick=()=>{SES=null;save();view()};
+    if(face())setTimeout(()=>{try{entrarSessao()}catch(e){}},350);
+  }else{
+    $$('.lg-tabs button').forEach(b=>b.onclick=()=>{modo=b.dataset.m;view()});
+    $('#lgForm').onsubmit=envia;
+    const f=$('#lgForgot');if(f)f.onclick=esqueci;
+  }
+}
+async function envia(e){
+  e.preventDefault();
+  const em=$('#lgEmail').value.trim(),pw=$('#lgPass').value,er=$('#lgErr'),bt=$('#lgGo');
+  KEEP=$('#lgKeep').checked;er.textContent='';bt.disabled=true;bt.textContent='Aguarde…';
+  try{
+    if(modo==='entrar'){
+      const r=await auth('/auth/v1/token?grant_type=password',{email:em,password:pw});
+      if(!r.ok){er.textContent=errMsg(r);return}
+      setSes(r.j);abre(true);
+    }else{
+      const r=await auth('/auth/v1/signup',{email:em,password:pw});
+      if(!r.ok){er.textContent=errMsg(r);return}
+      if(r.j.access_token){setSes(r.j);abre(true)}
+      else{modo='entrar';view('Conta criada. Enviamos um e-mail de confirmação: abra o link e depois entre.')}
+    }
+  }catch(x){er.textContent='Sem internet. Para entrar pela primeira vez é preciso estar conectado.'}
+  finally{bt.disabled=false;if(bt.isConnected)bt.textContent=modo==='entrar'?'Entrar':'Criar conta'}
+}
+async function esqueci(){
+  const em=$('#lgEmail').value.trim(),er=$('#lgErr');
+  if(!em){er.textContent='Digite seu e-mail e toque de novo em "Esqueci a senha".';return}
+  try{const r=await auth('/auth/v1/recover',{email:em});er.textContent=r.ok?'Enviamos um e-mail para trocar a senha.':errMsg(r)}catch(e){er.textContent='Sem internet.'}
+}
+async function entrarSessao(){
+  if(face()){
+    try{await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb64(face()),transports:['internal']}],userVerification:'required',timeout:60000}})}
+    catch(e){toast('Face ID não confirmado');return}
+  }
+  abre(false);
+}
+function abre(novo){
+  L.hidden=true;document.body.classList.remove('lk');
+  $('#ctMail').textContent=SES.email;
+  if(novo&&'credentials' in navigator&&window.PublicKeyCredential&&!face()&&!g('adam_face_no_'+SES.uid))setTimeout(oferecer,900);
+}
+async function oferecer(){if(!confirm('Quer entrar neste aparelho usando o Face ID?'))return s('adam_face_no_'+SES.uid,'1');await liga()}
+async function liga(){
+  try{
+    const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'Adam Agro'},user:{id:rnd(16),name:SES.email,displayName:SES.email},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},timeout:60000}});
+    s('adam_face_'+SES.uid,b64(c.rawId));toast('Face ID ativado');return true;
+  }catch(e){toast('Não foi possível ativar o Face ID');return false}
+}
+/* painel da conta (tela das safras) */
+function conta(){
+  const ok='credentials' in navigator&&window.PublicKeyCredential;
+  $('#ctBody').innerHTML=`<p style="margin:0 0 4px;color:var(--mut)">Conectado como</p><b style="overflow-wrap:anywhere">${esc(SES.email)}</b>
+   ${ok?`<div class="sc-row" style="margin-top:14px"><button class="btn o" id="ctFace">${face()?'Desativar Face ID':'Ativar Face ID'}</button></div><small style="color:var(--mut)">Com o Face ID ligado, o app pede o seu rosto ao abrir.</small>`:'<small style="color:var(--mut)">Este aparelho não oferece Face ID para o app.</small>'}
+   <div class="sc-row" style="margin-top:14px"><button class="btn o" id="ctOut" style="color:#b3261e;border-color:#b3261e">Sair da conta</button><button class="btn" id="ctX">Fechar</button></div>`;
+  $('#ctSheet').classList.add('on');
+  $('#ctX').onclick=()=>$('#ctSheet').classList.remove('on');
+  const f=$('#ctFace');if(f)f.onclick=async()=>{if(face()){d('adam_face_'+SES.uid);s('adam_face_no_'+SES.uid,'1');conta()}else{if(await liga())conta()}};
+  $('#ctOut').onclick=()=>{if(!confirm('Sair da conta neste aparelho? Seus dados continuam salvos.'))return;SES=null;save();$('#ctSheet').classList.remove('on');lock()};
+}
+$('#openConta').onclick=conta;
+$('#ctSheet').onclick=e=>{if(e.target.id==='ctSheet')$('#ctSheet').classList.remove('on')};
+load();
+if(SES){view();L.hidden=false}else{L.hidden=false;view()}
+document.body.classList.add('lk');
+})();
 
 </script>
 
