@@ -222,7 +222,7 @@ header .t{display:flex}header .mkh{width:40px;height:40px;margin:-4px -2px -4px 
         <img id="scPrev" class="sc-prev" alt="">
         <label>Observação (opcional)</label>
         <textarea id="scObs" rows="2" placeholder="Ex.: manchas nas folhas do baixeiro, estágio V6…"></textarea>
-        <div class="sc-row"><button class="btn" id="scGo" disabled>🔍 Identificar</button></div>
+        <div class="sc-row"><button class="btn" id="scGo" disabled>📤 Enviar ao Claude</button></div><small style="color:var(--mut)">Toque em Enviar, escolha o app do Claude e envie. A foto vai junto com o seu estoque e o preço do dia, e você recebe o diagnóstico e o manejo.</small>
       </div>
       <div id="scRes"></div>
     </div>
@@ -894,7 +894,7 @@ if((LS('adam_estoque_v')||0)<2){const old=new Map(EST.map(p=>[p.id,p]));const si
 const saveEst=()=>{LS('adam_estoque',EST)};
 let img=null;
 function show(on){$('#scan').style.display=on?'flex':'none';$('#launch').style.display=on?'none':'flex'}
-$('#openScan').onclick=()=>{show(true);tabS('scan')};
+$('#openScan').onclick=()=>{show(true);tabS('scan');rotulo()};
 $('#scBack').onclick=()=>show(false);
 function tabS(t){$$('#scan .stabs .chip').forEach(b=>b.classList.toggle('on',b.dataset.st===t));$('#sc-scan').style.display=t==='scan'?'':'none';$('#sc-est').style.display=t==='est'?'':'none';if(t==='est')listEst()}
 $$('#scan .stabs .chip').forEach(b=>b.onclick=()=>tabS(b.dataset.st));
@@ -914,33 +914,67 @@ async function pega(f){
 $('#scIn1').onchange=e=>{pega(e.target.files[0]);e.target.value=''};
 $('#scIn2').onchange=e=>{pega(e.target.files[0]);e.target.value=''};
 /* identificar */
-$('#scGo').onclick=async()=>{
-  const cult=$('#scCult').value,res=$('#scRes');
-  const url=LS('adam_scan_url');
-  if(!url){res.innerHTML='<div class="sc-card"><h3>Análise por IA ainda não ligada</h3><small>A foto já funciona. A identificação entra junto com o login do Adam Agro (próximo passo). Seu estoque e os preços já podem ser cadastrados na aba 📦 Estoque.</small></div>';return}
-  const est=EST.filter(p=>p.cult==='ambas'||p.cult===cult||!p.cult).map(p=>({id:p.id,nome:p.nome,tipo:p.tipo,ativo:p.ativo,alvos:p.alvos,dose:p.dose,preco:p.preco,un:p.un,qtd:p.qtd,data:p.data}));
-  res.innerHTML='<div class="sc-card"><small>Analisando a foto…</small></div>';$('#scGo').disabled=true;
+const IA=()=>LS('adam_ia')==='1';
+function rotulo(){$('#scGo').textContent=IA()?'🔍 Identificar':'📤 Enviar ao Claude'}
+function textoEstoque(cult){
+  const L=EST.filter(p=>p.tipo!=='Óleos e adjuvantes'&&(p.cult==='ambas'||p.cult===cult||!p.cult)&&p.preco!=='').map(p=>p.nome+(p.ativo?' ('+p.ativo+')':'')+' | '+(p.tipo||'')+' | dose '+(p.dose||'—')+' | R$ '+Number(p.preco).toFixed(2).replace('.',',')+'/'+(p.un||'un')+(p.qtd!==''&&p.qtd!=null?' | estoque '+p.qtd:''));
+  return L.join('\n');
+}
+async function enviaClaude(){
+  const cult=$('#scCult').value,obs=$('#scObs').value.trim();
+  const txt='Diagnóstico Agro — cultura: '+cult+'.'+(obs?' Observação: '+obs+'.':'')+'\n\nIdentifique a doença, praga ou deficiência da foto, confirme em fontes confiáveis (Embrapa, Agrofit/MAPA, FRAC/IRAC) e indique o melhor produto do meu estoque abaixo. Explique o grupo químico, o modo de ação e como age, e calcule dose e custo por hectare.\n\nMeu estoque (cotação do dia):\n'+textoEstoque(cult);
+  const blob=await (await fetch(img)).blob();
+  const f=new File([blob],'folha-'+cult+'.jpg',{type:'image/jpeg'});
   try{
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(LS('adam_scan_token')||'')},body:JSON.stringify({imagem:img,cultura:cult,obs:$('#scObs').value,estoque:est})});
-    const j=await r.json();if(!r.ok)throw new Error(j.erro||r.status);
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:txt});return}
+  }catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(txt);toast('Texto copiado. Anexe a foto no Claude e cole.')}catch(e){toast('Não consegui compartilhar')}
+}
+$('#scGo').onclick=async()=>{
+  if(!IA()){await enviaClaude();return}
+  const cult=$('#scCult').value,res=$('#scRes');
+  if(!(window.AdamAuth&&AdamAuth.ses)){res.innerHTML='<div class="sc-card"><h3>Entre na sua conta</h3><small>O Diagnóstico só funciona com você logado.</small></div>';return}
+  if(!navigator.onLine){res.innerHTML='<div class="sc-card"><h3>Sem internet</h3><small>O diagnóstico precisa de sinal. Sua foto continua aqui: quando o sinal voltar, toque em Identificar.</small></div>';return}
+  const est=EST.filter(p=>p.cult==='ambas'||p.cult===cult||!p.cult).map(p=>({id:p.id,nome:p.nome,tipo:p.tipo,ativo:p.ativo,alvos:p.alvos,dose:p.dose,un:p.un,qtd:p.qtd}));
+  res.innerHTML='<div class="sc-card"><small>Analisando a foto e consultando as fontes… pode levar até 1 minuto.</small></div>';$('#scGo').disabled=true;
+  try{
+    const t=await AdamAuth.token();
+    const r=await fetch(AdamAuth.url+'/functions/v1/diagnostico',{method:'POST',headers:{'Content-Type':'application/json',apikey:AdamAuth.key,Authorization:'Bearer '+t},body:JSON.stringify({imagem:img,cultura:cult,obs:$('#scObs').value,estoque:est})});
+    let j={};try{j=await r.json()}catch(e){}
+    if(!r.ok)throw new Error(j.erro||j.message||('erro '+r.status));
     mostra(j);
   }catch(e){res.innerHTML='<div class="sc-card"><h3>Não consegui analisar</h3><small>'+esc(e.message||e)+'</small></div>'}
   $('#scGo').disabled=false;
 };
+function custoHa(p){
+  const m=String(p.dose||'').replace(',','.').match(/^\s*([\d.]+)(?:\s*-\s*[\d.]+)?\s*(kg|g|l|ml)?/i);
+  if(!m||p.preco===''||p.preco==null||/100\s*kg|\/dose|ds/i.test(String(p.dose)))return null;
+  let q=parseFloat(m[1]),u=(m[2]||p.un||'').toLowerCase();
+  if(u==='g')q/=1000;else if(u==='ml')q/=1000;
+  return q*Number(p.preco);
+}
 function mostra(j){
-  const ids=(j.produtos||[]);let h='<div class="sc-card"><h3>'+esc(j.problema||'Sem identificação')+'</h3>'
+  const ids=(j.produtos||[]);
+  let h='<div class="sc-card"><h3>'+esc(j.problema||'Sem identificação')+'</h3>'
    +'<small>'+esc(j.tipo||'')+(j.confianca?' · confiança '+esc(j.confianca):'')+'</small>'
    +(j.descricao?'<p style="margin:8px 0 0">'+esc(j.descricao)+'</p>':'')
+   +((j.alternativas||[]).length?'<p style="margin:8px 0 0"><b>Outras hipóteses:</b> '+j.alternativas.map(esc).join('; ')+'</p>':'')
    +(j.manejo?'<p style="margin:8px 0 0"><b>Manejo:</b> '+esc(j.manejo)+'</p>':'')+'</div>';
   if(ids.length){
-    h+='<div class="xh2" style="font:700 13px Arial;text-transform:uppercase;color:var(--mut);margin:14px 0 8px">Do seu estoque</div>';
+    h+='<div style="font:700 13px Arial;text-transform:uppercase;color:var(--mut);margin:14px 0 8px">Do seu estoque</div>';
     ids.forEach((x,i)=>{const p=EST.find(e=>e.id===x.id);if(!p)return;
+      const c=custoHa(p),velho=p.data&&(Date.now()-new Date(p.data+'T12:00:00').getTime())>7*864e5;
       h+='<div class="sc-card'+(i===0?' sc-best':'')+'">'+(i===0?'<span class="sc-badge">Melhor opção</span>':'')
-       +'<div class="sc-p" style="border:0;padding:0"><div><b>'+esc(p.nome)+'</b><br><small>'+esc(p.tipo||'')+(p.ativo?' · '+esc(p.ativo):'')+'</small></div>'
-       +'<div style="text-align:right"><div class="sc-pr">'+brl(p.preco)+(p.un?' / '+esc(p.un):'')+'</div><small>'+(p.data?'cotação '+dm(p.data):'')+'</small></div></div>'
-       +(x.motivo?'<p style="margin:8px 0 0">'+esc(x.motivo)+'</p>':'')
-       +(p.qtd!=null&&p.qtd!==''?'<small>Em estoque: '+esc(p.qtd)+'</small>':'')+'</div>';});
+       +'<div class="sc-p" style="border:0;padding:0"><div><b>'+esc(p.nome)+'</b><br><small>'+esc(p.ativo||'')+'</small></div>'
+       +'<div style="text-align:right"><div class="sc-pr">'+brl(p.preco)+(p.un?' / '+esc(p.un):'')+'</div><small>'+(p.data?'cotação '+dm(p.data):'')+(velho?' · atualize':'')+'</small></div></div>'
+       +'<p style="margin:8px 0 0"><b>Dose:</b> '+esc(p.dose||'—')+(c!=null?' · <b>custo ≈ '+brl(c)+'/ha</b>':'')+(p.qtd!==''&&p.qtd!=null?' · estoque '+esc(p.qtd):'')+'</p>'
+       +(x.motivo?'<p style="margin:6px 0 0">'+esc(x.motivo)+'</p>':'')
+       +(x.grupo_quimico?'<p style="margin:6px 0 0"><b>Grupo químico:</b> '+esc(x.grupo_quimico)+'</p>':'')
+       +(x.modo_de_acao?'<p style="margin:6px 0 0"><b>Modo de ação:</b> '+esc(x.modo_de_acao)+'</p>':'')
+       +(x.como_age?'<p style="margin:6px 0 0"><b>Como age:</b> '+esc(x.como_age)+'</p>':'')+'</div>';});
   }else h+='<div class="sc-card"><small>Nenhum produto do seu estoque serve para este caso.</small></div>';
+  if((j.fontes||[]).length)h+='<div class="sc-card"><b>Fontes</b>'+j.fontes.map(f=>'<div style="margin-top:6px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener" style="color:var(--g)">'+esc(f.titulo||f.url)+'</a></div>').join('')+'</div>';
+  if(j.aviso)h+='<small style="color:var(--mut);display:block;margin:4px 2px 14px">'+esc(j.aviso)+'</small>';
   $('#scRes').innerHTML=h;
 }
 /* estoque */
@@ -978,6 +1012,8 @@ function fEst(id){
 $('#esSheet').onclick=e=>{if(e.target.id==='esSheet')$('#esSheet').classList.remove('on')};
 window.AdamEst={get:()=>EST,set:a=>{EST=a;saveEst()},del:()=>LS('adam_estoque_del')||{},setDel:o=>LS('adam_estoque_del',o),refresh:()=>{if($('#sc-est').style.display!=='none')listEst()}};
 })();
+
+
 
 
 
