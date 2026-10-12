@@ -657,9 +657,9 @@ function mergeSet(local,remote,delL,delR){
   Object.keys(del).forEach(k=>{if(del[k]!==delR[k])push=true});
   return {out,del,push};
 }
-async function sync(retry){
+async function ghSync(retry){
   if(syncing)return;
-  if(!tok()){stat('Sem token — toque em ⚙',false);return}
+  if(!tok())return;
   if(!navigator.onLine){stat('Offline — salvo no celular',false);return}
   syncing=true;stat('Sincronizando…',true);
   try{
@@ -674,7 +674,7 @@ async function sync(retry){
     SAF.soja=m1.out;SAF.safrinha=m2.out;META.del=m1.del;META.delS=m2.del;C=SAF[safra];persist();
     if(m1.push||m2.push||r.status===404){
       const w=await ghx('PUT',{message:'sync '+new Date().toISOString(),content:b64e(JSON.stringify({v:2,atualizado:new Date().toISOString(),clientes:m1.out,safrinha:m2.out,del:m1.del,delS:m2.del},null,1)),sha:sha||undefined});
-      if(w.status===409||w.status===422){syncing=false;if(!retry)return sync(true);stat('Conflito, tente de novo',false);return}
+      if(w.status===409||w.status===422){syncing=false;if(!retry)return ghSync(true);stat('Conflito, tente de novo',false);return}
       if(!w.ok){stat('Erro ao enviar '+w.status,false);return}
     }
     lastSync=new Date().toISOString();LS('adam_last',lastSync);
@@ -683,6 +683,7 @@ async function sync(retry){
   }catch(e){stat('Sem conexão — salvo no celular',false)}
   finally{syncing=false;subirFotos()}
 }
+async function sync(){try{if(window.sbSync)await window.sbSync()}catch(e){}if(tok())await ghSync()}
 function backupExport(){
   const txt=JSON.stringify({v:1,exportado:new Date().toISOString(),clientes:SAF.soja,safrinha:SAF.safrinha,del:META.del,sim:{vd:LS('adam_sim_vd'),canal:LS('adam_sim_canal')}},null,1);
   const f=new File([txt],'adam-agro-backup-'+hoje()+'.json',{type:'application/json'});
@@ -695,8 +696,8 @@ function backupImport(file){
 }
 function cfg(){
   $('#form').innerHTML=`<h2>Sincronização</h2>
-  <small class="note">Os dados ficam salvos no celular e sobem para o GitHub quando há internet.</small>
-  <label>Token do GitHub (fica só neste aparelho)</label><input id="c_tok" type="password" autocomplete="off" autocapitalize="off" placeholder="github_pat_..." value="${esc(tok())}">
+  <small class="note">Os dados ficam salvos no celular e sincronizam com a sua conta quando há internet. O token do GitHub é opcional (só para as fotos irem para o notebook).</small>
+  <label>Token do GitHub — opcional (fica só neste aparelho)</label><input id="c_tok" type="password" autocomplete="off" autocapitalize="off" placeholder="github_pat_..." value="${esc(tok())}">
   <div class="res" id="cfgSt">${esc($('#syncSt').textContent)}</div>
   <div class="acts"><button class="btn o" id="c_close">Fechar</button><button class="btn" id="c_ok">Salvar e sincronizar</button></div>
   <div class="sec">Backup</div>
@@ -742,16 +743,35 @@ async function addFotos(n,files){
 }
 const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
 async function subirFotos(){
-  if(subindo||!tok()||!navigator.onLine)return;subindo=true;
+  if(subindo||!navigator.onLine)return;
+  const hasSB=!!(window.AdamAuth&&AdamAuth.ses),hasGH=!!tok();
+  if(!hasSB&&!hasGH)return;
+  subindo=true;
   try{
     const L=(await fAll()).filter(x=>!x.sent&&x.blob);
     for(const f of L){
       SAF[safra]=C;const fs=f.s||'soja',c=SAF[fs].find(x=>x.n===f.n);if(!c||!String(c.nome||'').trim())continue;
-      const nome=c.nome.replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim(),path=(fs==='soja'?'fotos/':'fotos-safrinha/')+nome+'/'+nomeArq(f);
-      const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+path.split('/').map(encodeURIComponent).join('/'),
-        {method:'PUT',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'foto '+nome,content:await blobB64(f.blob)})});
-      if(r.ok||r.status===422){await fPut({id:f.id,n:f.n,s:fs,ts:f.ts,sent:true,path});await refreshFotos()}
-      else break;
+      let ok=true;
+      if(hasSB&&!f.sb){
+        try{
+          const t=await AdamAuth.token(),p='fotos/'+AdamAuth.ses.uid+'/'+fs+'/'+f.n+'/'+nomeArq(f);
+          const r=await fetch(AdamAuth.url+'/storage/v1/object/'+p,{method:'POST',headers:{apikey:AdamAuth.key,Authorization:'Bearer '+t,'x-upsert':'true','Content-Type':'image/jpeg'},body:f.blob});
+          if(r.ok){f.sb=true}else ok=false;
+        }catch(e){ok=false}
+      }
+      if(hasGH&&!f.gh){
+        const nome=c.nome.replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim(),path=(fs==='soja'?'fotos/':'fotos-safrinha/')+nome+'/'+nomeArq(f);
+        try{
+          const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+path.split('/').map(encodeURIComponent).join('/'),
+            {method:'PUT',headers:{Authorization:'Bearer '+tok(),Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'foto '+nome,content:await blobB64(f.blob)})});
+          if(r.ok||r.status===422){f.gh=true}else ok=false;
+        }catch(e){ok=false}
+      }
+      const done=ok&&(!hasSB||f.sb)&&(!hasGH||f.gh);
+      if(done)await fPut({id:f.id,n:f.n,s:fs,ts:f.ts,sent:true,sb:!!f.sb,gh:!!f.gh});
+      else await fPut(f);
+      await refreshFotos();
+      if(!ok)break;
     }
   }catch(e){}
   finally{subindo=false;refreshFotos()}
@@ -947,16 +967,18 @@ function fEst(id){
    +'<div class="sc-row" style="margin-top:16px"><button class="btn o" id="e_x">Cancelar</button>'+(p._n?'':'<button class="btn o" id="e_d" style="color:#b3261e;border-color:#b3261e">Excluir</button>')+'<button class="btn" id="e_s">Salvar</button></div>';
   $('#esSheet').classList.add('on');
   $('#e_x').onclick=()=>$('#esSheet').classList.remove('on');
-  if($('#e_d'))$('#e_d').onclick=()=>{if(confirm('Excluir '+p.nome+'?')){EST=EST.filter(x=>x.id!==p.id);saveEst();$('#esSheet').classList.remove('on');listEst()}};
+  if($('#e_d'))$('#e_d').onclick=()=>{if(confirm('Excluir '+p.nome+'?')){EST=EST.filter(x=>x.id!==p.id);const ED=LS('adam_estoque_del')||{};ED[p.id]=Date.now();LS('adam_estoque_del',ED);saveEst();$('#esSheet').classList.remove('on');listEst();try{sync()}catch(e){}}};
   $('#e_s').onclick=()=>{
     const n=$('#e_nome').value.trim();if(!n){toast('Coloque o nome');return}
     const q=$('#e_preco').value;const old=EST.find(x=>x.id===p.id);
     const o={id:p.id,nome:n,tipo:$('#e_tipo').value,ativo:$('#e_ativo').value.trim(),alvos:$('#e_alvos').value.trim(),dose:$('#e_dose').value.trim(),emb:$('#e_emb').value.trim(),arm:(old&&old.arm)||'',cult:$('#e_cult').value,preco:q===''?'':Number(q),un:$('#e_un').value.trim(),qtd:$('#e_qtd').value===''?'':Number($('#e_qtd').value),data:(old&&old.preco===(q===''?'':Number(q)))?old.data:hoje(),upd:Date.now()};
-    EST=EST.filter(x=>x.id!==p.id);EST.push(o);saveEst();$('#esSheet').classList.remove('on');listEst();toast('Produto salvo');
+    EST=EST.filter(x=>x.id!==p.id);EST.push(o);saveEst();$('#esSheet').classList.remove('on');listEst();toast('Produto salvo');try{sync()}catch(e){}
   };
 }
 $('#esSheet').onclick=e=>{if(e.target.id==='esSheet')$('#esSheet').classList.remove('on')};
+window.AdamEst={get:()=>EST,set:a=>{EST=a;saveEst()},del:()=>LS('adam_estoque_del')||{},setDel:o=>LS('adam_estoque_del',o),refresh:()=>{if($('#sc-est').style.display!=='none')listEst()}};
 })();
+
 
 
 
@@ -1049,7 +1071,7 @@ async function entrarSessao(){
 }
 function abre(novo){
   L.hidden=true;document.body.classList.remove('lk');
-  $('#ctMail').textContent=SES.email;
+  $('#ctMail').textContent=SES.email;try{sync()}catch(e){}
   if(novo&&'credentials' in navigator&&window.PublicKeyCredential&&!face()&&!g('adam_face_no_'+SES.uid))setTimeout(oferecer,900);
 }
 async function oferecer(){if(!confirm('Quer entrar neste aparelho usando o Face ID?'))return s('adam_face_no_'+SES.uid,'1');await liga()}
@@ -1076,6 +1098,76 @@ load();
 if(SES){view();L.hidden=false}else{L.hidden=false;view()}
 document.body.classList.add('lk');
 })();
+
+
+/* ---- Sincronização com a conta (Supabase) ---- */
+(function(){
+let busy=false;
+const hh=()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+async function req(path,opt){
+  const t=await AdamAuth.token();
+  return fetch(AdamAuth.url+path,Object.assign({},opt,{headers:Object.assign({apikey:AdamAuth.key,Authorization:'Bearer '+t,'Content-Type':'application/json'},(opt&&opt.headers)||{})}));
+}
+function mergeById(local,rows,delL){
+  const lm={};local.forEach(p=>lm[p.id]=p);
+  const rm={},delR={};rows.forEach(r=>{if(r.deleted)delR[r.id]=r.upd;else rm[r.id]={...r.data,id:r.id,upd:r.upd}});
+  const del={...delR};Object.keys(delL).forEach(k=>{del[k]=Math.max(del[k]||0,delL[k])});
+  const out=[],push=[];
+  new Set([...Object.keys(lm),...Object.keys(rm)]).forEach(k=>{
+    const l=lm[k],m=rm[k],lu=l?l.upd||0:-1,mu=m?m.upd||0:-1,d=del[k]||0,win=lu>mu?l:(m||l);
+    if(d&&d>=(win.upd||0)){return}
+    if(!m||lu>mu){const u=l.upd||1;push.push({id:k,data:l,upd:u,deleted:false})}
+    out.push(win);
+  });
+  Object.keys(del).forEach(k=>{if(delR[k]!==del[k])push.push({id:k,data:{},upd:del[k],deleted:true})});
+  return{out,del,push};
+}
+window.sbSync=async function(){
+  if(busy||!window.AdamAuth||!AdamAuth.ses||!navigator.onLine)return;
+  busy=true;stat('Sincronizando…',true);
+  try{
+    const r=await req('/rest/v1/registros?select=col,id,data,upd,deleted&limit=5000');
+    if(!r.ok)throw new Error('GET '+r.status);
+    const rows=await r.json(),up=[];
+    SAF[safra]=C;
+    const mk=col=>{
+      const rr=rows.filter(x=>x.col===col),
+        loc=(col==='soja'?SAF.soja:SAF.safrinha).map(c=>({...c,id:String(c.n)})),
+        dl={};const dm=(col==='soja'?META.del:META.delS)||{};Object.keys(dm).forEach(k=>dl[k]=dm[k]);
+      const m=mergeById(loc,rr,dl);
+      m.push.forEach(p=>{if(!p.deleted){delete p.data.id;p.data.upd=p.upd}up.push({user_id:AdamAuth.ses.uid,col,id:p.id,data:p.data,upd:p.upd,deleted:p.deleted})});
+      const out=m.out.map(c=>{const o={...c};delete o.id;return o}).sort((a,b)=>a.n-b.n);
+      return{out,del:m.del};
+    };
+    const a=mk('soja'),b=mk('safrinha');
+    const changed=JSON.stringify(a.out)!==JSON.stringify(SAF.soja)||JSON.stringify(b.out)!==JSON.stringify(SAF.safrinha);
+    SAF.soja=a.out;SAF.safrinha=b.out;META.del=a.del;META.delS=b.del;C=SAF[safra];persist();
+    /* estoque */
+    let estCh=false;
+    if(window.AdamEst){
+      const m=mergeById(AdamEst.get(),rows.filter(x=>x.col==='estoque'),AdamEst.del());
+      m.push.forEach(p=>{if(!p.deleted){p.data={...p.data};delete p.data.id;p.data.upd=p.upd}up.push({user_id:AdamAuth.ses.uid,col:'estoque',id:p.id,data:p.data,upd:p.upd,deleted:p.deleted})});
+      const cur=JSON.stringify(AdamEst.get().map(x=>x.id).sort());
+      estCh=JSON.stringify(m.out.map(x=>x.id).sort())!==cur||m.out.some(x=>{const o=AdamEst.get().find(y=>y.id===x.id);return !o||(o.upd||0)!==(x.upd||0)});
+      AdamEst.set(m.out);AdamEst.setDel(m.del);
+    }
+    for(let i=0;i<up.length;i+=200){
+      const w=await req('/rest/v1/registros?on_conflict=user_id,col,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(up.slice(i,i+200))});
+      if(!w.ok)throw new Error('POST '+w.status);
+    }
+    stat('Sincronizado '+hh(),true);
+    const open=$('#sheet').classList.contains('on')||$('#esSheet').classList.contains('on');
+    if(changed&&!open)renderAll();
+    if(estCh&&window.AdamEst)AdamEst.refresh();
+  }catch(e){stat(e&&e.message==='rede'?'Sem conexão — salvo no celular':'Erro ao sincronizar',false)}
+  finally{busy=false;try{subirFotos()}catch(e){}}
+};
+window.addEventListener('online',()=>sync());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+setInterval(()=>{if(!document.hidden)sync()},90000);
+})();
+
+setTimeout(()=>{try{sync()}catch(e){}},600);
 
 </script>
 
