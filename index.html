@@ -304,7 +304,7 @@ function inicio(){
   <small class="note" style="margin-top:8px">Faltam ${C.length-k.pl} clientes plantar ou informar a data.</small></div>
   <div class="sec">Últimos plantios</div>
   ${prox.map(c=>`<div class="card"><div class="row"><span class="nm">${esc(c.nome)}</span><span class="m">${fd(c.plantio)}</span></div><div class="vs"><span class="c">${esc(c.cult)}</span><i>x</i>${esc(c.conc||'—')}</div></div>`).join('')}
-  ${safra!=='soja'?cotCard():''}${safra==='soja'?`<div class="sec">Controle de sementes</div>
+  ${safra!=='soja'?volumesCard()+cotCard():''}${safra==='soja'?`<div class="sec">Controle de sementes</div>
   <div class="card"><div class="row"><b>${esc(s.cultivar)}</b><span class="m ok">${s.total} sc</span></div>
   <small class="note" style="margin-top:4px">NF ${esc(s.nf)}</small>
   <div class="meta" style="margin-top:10px">${s.lista.map(x=>`<span class="m">${esc(x[0])} · ${x[1]}</span>`).join('')}</div></div>`:''}`;
@@ -325,7 +325,7 @@ function clientes(){
   <div class="filters">${chip('todos','Todos')}${chip('plantado','Plantados')}${chip('falta','Sem plantio')}${chip('gps','Sem localização')}</div>
   ${f.map(c=>`<div class="card">
     <div class="row"><span class="nm">${c.n}. ${esc(c.nome)}</span><span style="display:flex;gap:6px">${c.gps?`<a class="btn" target="_blank" rel="noopener" href="${rota(c.gps)}">Ver rota</a>`:''}<button class="ed" data-e="${c.n}">Editar</button></span></div>
-    ${hibList(c).map(h=>`<div class="vs"><span class="c">${esc(h.cult)}</span><i>x</i>${esc(h.conc||'concorrente a definir')}${h.sacos?` · ${h.sacos} sacos`:''}</div>`).join('')}
+    ${hibList(c).map(h=>`<div class="vs"><span class="c">${esc(h.cult)}</span><i>x</i>${esc(h.conc||'concorrente a definir')}${h.sacos?` · ${h.sacos} sacos`:''}${(h.tipo||'Venda')!=='Venda'&&safra!=='soja'?' · <b>Teste</b>':''}</div>`).join('')}
     <div class="meta">
       ${c.cons?`<span class="m">👤 ${esc(c.cons)}</span>`:'<span class="m w">sem consultor</span>'}
       ${c.gm?`<span class="m">GM ${esc(c.gm)}</span>`:''}${c.ciclo?`<span class="m">${esc(c.ciclo)} dias</span>`:''}
@@ -392,8 +392,7 @@ const fdc=s=>{const d=pd(s);return ['dom','seg','ter','qua','qui','sex','sáb'][
 function proxVisita(c){
   if(!c.plantio)return null;
   const v=(c.visitas||[]).slice().sort();
-  const p=v.length?addD(v[v.length-1],10):addD(c.plantio,10),m=addD('2026-10-19',10);
-  return p<m?m:p;
+  return v.length?addD(v[v.length-1],10):addD(c.plantio,10);
 }
 function visitStats(){
   const h=hoje();let atr=0,hj=0;
@@ -417,7 +416,7 @@ function visitas(){
     <div class="meta" style="margin-top:8px"><span class="m">Plantio ${fd(c.plantio)}</span><span class="m">${v.length?`${v.length} visita${v.length>1?'s':''} · última ${fd(v[v.length-1]).slice(0,5)}`:'1ª visita (10 dias após plantio)'}</span></div>
     <div class="acts" style="margin-top:12px">${c.gps?`<a class="btn o" target="_blank" rel="noopener" href="${rota(c.gps)}">Ir até lá</a>`:''}<button class="btn" data-ok="${c.n}">Visitei hoje ✓</button>${v.length?`<button class="ed" data-undo="${c.n}">Desfazer</button>`:''}</div></div>`};
   const wait=C.filter(c=>!c.plantio);
-  $('#v-visitas').innerHTML=`<small class="note" style="margin:0 0 12px">Regra: 1ª visita 10 dias após o plantio, depois a cada 10 dias (contagem recomeçou em 19/10).</small>`+
+  $('#v-visitas').innerHTML=`<small class="note" style="margin:0 0 12px">Regra: 1ª visita 10 dias após o plantio, depois a cada 10 dias.</small>`+
   (L.length?grp.map(([t,f,cl])=>{const r=L.filter(f);return r.length?`<div class="sec">${t} (${r.length})</div>`+r.map(x=>card(x,cl)).join(''):''}).join(''):'<div class="empty"><b>Nenhum cliente plantado</b>Quando houver data de plantio, as visitas aparecem aqui.</div>')+
   (wait.length?`<div class="sec">Aguardando plantio (${wait.length})</div><div class="card"><div class="meta">${wait.map(c=>`<span class="m w">${esc(c.nome)}</span>`).join('')}</div></div>`:'');
   $$('[data-ok]').forEach(b=>b.onclick=()=>feita(+b.dataset.ok));
@@ -578,7 +577,7 @@ function edit(n){
   $('#form').innerHTML=`<h2>${novo?'Novo cliente':'Editar cliente'}</h2>
   ${f('nome','Nome do produtor',c.nome)}
   <div class="two"><div>${f('cult','Cultivar',c.cult)}</div><div>${f('conc','Concorrente',c.conc)}</div></div>
-  <div class="two"><div>${f('sacosP','Sacos do híbrido principal',c.area)}</div><div></div></div><div id="hibsBox"></div><button type="button" class="btn o" id="hibAdd" style="margin-top:8px;width:100%">+ Outro híbrido deste cliente</button>
+  <div class="two"><div>${f('sacosP','Sacos do híbrido principal',c.area)}</div><div>${safra!=='soja'?'<label>Tipo</label>'+tipoSel('id="f_tipoP"',c.tipoP):''}</div></div><div id="hibsBox"></div><button type="button" class="btn o" id="hibAdd" style="margin-top:8px;width:100%">+ Outro híbrido deste cliente</button>
   <div class="two"><div>${f('cons','Consultor',c.cons)}</div><div>${f('pop','População (pl/ha)',c.pop??c.popt,'inputmode="numeric"')}</div></div>
   <div class="two"><div>${f('gm','Grupo de maturação',c.gm)}</div><div>${f('ciclo','Ciclo (dias)',c.ciclo)}</div></div>
   <div class="two"><div><label>Data de plantio</label><input id="f_plantio" type="date" value="${c.plantio||''}"></div>
@@ -590,10 +589,10 @@ function edit(n){
   <div class="acts">${novo?'':'<button class="btn d" id="del">Apagar</button>'}<button class="btn o" id="cancel">Cancelar</button><button class="btn" id="ok">Salvar</button></div>`;
   $('#sheet').classList.add('on');bindFotos(c.n);
   const hibs=JSON.parse(JSON.stringify(c.hibs||[]));
-  const drawHibs=()=>{const bx=$('#hibsBox');bx.innerHTML=hibs.map((h,i)=>`<div class="two" style="margin-top:8px"><input data-hi="${i}" data-hk="cult" placeholder="Híbrido" value="${esc(h.cult)}"><div style="display:flex;gap:6px"><input data-hi="${i}" data-hk="conc" placeholder="Concorrente" value="${esc(h.conc)}"><input data-hi="${i}" data-hk="sacos" type="number" inputmode="numeric" placeholder="Sacos" style="max-width:80px" value="${esc(h.sacos||'')}"><button type="button" class="ed" data-hrm="${i}">✕</button></div></div>`).join('');
+  const drawHibs=()=>{const bx=$('#hibsBox');bx.innerHTML=hibs.map((h,i)=>`<div class="two" style="margin-top:8px"><input data-hi="${i}" data-hk="cult" placeholder="Híbrido" value="${esc(h.cult)}"><div style="display:flex;gap:6px"><input data-hi="${i}" data-hk="conc" placeholder="Concorrente" value="${esc(h.conc)}"><input data-hi="${i}" data-hk="sacos" type="number" inputmode="numeric" placeholder="Sacos" style="max-width:80px" value="${esc(h.sacos||'')}">${safra!=='soja'?tipoSel('data-hi="'+i+'" data-hk="tipo" style="max-width:120px"',h.tipo):''}<button type="button" class="ed" data-hrm="${i}">✕</button></div></div>`).join('');
     bx.querySelectorAll('[data-hi]').forEach(x=>x.oninput=()=>{hibs[+x.dataset.hi][x.dataset.hk]=x.value});
     bx.querySelectorAll('[data-hrm]').forEach(x=>x.onclick=()=>{hibs.splice(+x.dataset.hrm,1);drawHibs()})};
-  drawHibs();$('#hibAdd').onclick=()=>{hibs.push({cult:'',conc:'',sacos:''});drawHibs()};
+  drawHibs();$('#hibAdd').onclick=()=>{hibs.push({cult:'',conc:'',sacos:'',tipo:'Venda'});drawHibs()};
   $('#cancel').onclick=()=>$('#sheet').classList.remove('on');
   if(!novo)$('#del').onclick=async e=>{const b=e.currentTarget;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Toque de novo';return}await remove(n);C=C.filter(x=>x.n!==n);$('#sheet').classList.remove('on');renderAll()};
   $('#ok').onclick=async()=>{
@@ -602,7 +601,7 @@ function edit(n){
     const g=parseGps(v('gps'));if(g===undefined){toast('Localização não reconhecida');return}
     const pr=v('pop').replace(/\./g,'');
     const antes=hibList(c).map(h=>h.cult);Object.assign(c,{nome:v('nome'),cult:v('cult'),conc:v('conc')||null,cons:v('cons')||null,gm:v('gm')||null,ciclo:v('ciclo')||null,
-      pop:/^\d+$/.test(pr)?+pr:null,popt:/^\d+$/.test(pr)||!pr?null:v('pop'),plantio:v('plantio')||null,aut:v('aut')||null,gps:g,area:+v('sacosP')||null,hibs:hibs.filter(h=>h.cult&&h.cult.trim()).map(h=>({cult:h.cult.trim(),conc:(h.conc||'').trim(),sacos:+h.sacos||null}))});const depois=hibList(c).map(h=>h.cult);antes.forEach((o,i)=>{if(depois[i]&&depois[i]!==o)(c.avaliacoes||[]).forEach(a=>{if((a.hib||antes[0])===o)a.hib=depois[i]})});
+      pop:/^\d+$/.test(pr)?+pr:null,popt:/^\d+$/.test(pr)||!pr?null:v('pop'),plantio:v('plantio')||null,aut:v('aut')||null,gps:g,area:+v('sacosP')||null,tipoP:(safra!=='soja'&&$('#f_tipoP'))?$('#f_tipoP').value:(c.tipoP||'Venda'),hibs:hibs.filter(h=>h.cult&&h.cult.trim()).map(h=>({cult:h.cult.trim(),conc:(h.conc||'').trim(),sacos:+h.sacos||null,tipo:h.tipo||'Venda'}))});const depois=hibList(c).map(h=>h.cult);antes.forEach((o,i)=>{if(depois[i]&&depois[i]!==o)(c.avaliacoes||[]).forEach(a=>{if((a.hib||antes[0])===o)a.hib=depois[i]})});
     if(await save(c)){const i=C.findIndex(x=>x.n===c.n);if(i<0)C.push(c);else C[i]=c;C.sort((a,b)=>a.n-b.n);$('#sheet').classList.remove('on');renderAll();toast('Salvo')}
   };
 }
@@ -809,7 +808,19 @@ function setListas(){
   }
 }
 setListas();
-function hibList(c){return [{cult:c.cult,conc:c.conc,sacos:c.area},...(c.hibs||[])].filter(h=>h.cult)}
+function hibList(c){return [{cult:c.cult,conc:c.conc,sacos:c.area,tipo:c.tipoP},...(c.hibs||[])].filter(h=>h.cult)}
+const TIPOS_V=['Venda','Bonificado - Teste'];
+const tipoSel=(attrs,v)=>`<select ${attrs}>${TIPOS_V.map(t=>`<option${(v||'Venda')===t?' selected':''}>${t}</option>`).join('')}</select>`;
+function volumesCard(){
+  const m={};
+  C.forEach(c=>hibList(c).forEach(h=>{const k=h.cult.trim();if(!k)return;const o=m[k]||(m[k]={v:0,t:0,n:new Set()});const q=+h.sacos||0;if((h.tipo||'Venda')==='Venda')o.v+=q;else o.t+=q;o.n.add(c.n)}));
+  const L=Object.entries(m).sort((a,b)=>(b[1].v+b[1].t)-(a[1].v+a[1].t));
+  if(!L.length)return '';
+  const tv=L.reduce((a,x)=>a+x[1].v,0),tt=L.reduce((a,x)=>a+x[1].t,0),nf=x=>x.toLocaleString('pt-BR');
+  return `<div class="sec">Volume por híbrido (sacos)</div><div class="card"><table class="xt"><tr class="xg"><th style="text-align:left">Híbrido</th><th>Venda</th><th>Teste</th><th>Total</th></tr>
+  ${L.map(([k,o])=>`<tr><td style="text-align:left"><b>${esc(k)}</b><br><small>${o.n.size} cliente${o.n.size>1?'s':''}</small></td><td>${nf(o.v)}</td><td>${nf(o.t)}</td><td><b>${nf(o.v+o.t)}</b></td></tr>`).join('')}
+  <tr class="xg"><td style="text-align:left"><b>Total</b></td><td><b>${nf(tv)}</b></td><td><b>${nf(tt)}</b></td><td><b>${nf(tv+tt)}</b></td></tr></table></div>`;
+}
 const f1c=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 function extrasAv(g){const base=g==='doencas'?DOENCAS:PRAGAS,s=new Set();C.forEach(c=>(c.avaliacoes||[]).forEach(a=>Object.keys(a[g]||{}).forEach(k=>{if(!base.includes(k))s.add(k)})));return [...s].sort()}
 function mediaAv(c,g,hib){const base=(hibList(c)[0]||{}).cult;const L=(c.avaliacoes||[]).filter(a=>!hib||(a.hib||base)===hib);if(!L.length)return[];const ks=new Set();L.forEach(a=>Object.keys(a[g]||{}).forEach(k=>ks.add(k)));
