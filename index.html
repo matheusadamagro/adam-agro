@@ -916,7 +916,7 @@ async function pega(f){
 $('#scIn1').onchange=e=>{pega(e.target.files[0]);e.target.value=''};
 $('#scIn2').onchange=e=>{pega(e.target.files[0]);e.target.value=''};
 /* identificar */
-const IA=()=>LS('adam_ia')==='1';
+const IA=()=>LS('adam_ia')!=='0';
 function rotulo(){$('#scGo').textContent=IA()?'🔍 Identificar':'📤 Enviar ao Claude'}
 function textoEstoque(cult){
   const L=EST.filter(p=>p.tipo!=='Óleos e adjuvantes'&&(p.cult==='ambas'||p.cult===cult||!p.cult)&&p.preco!=='').map(p=>p.nome+(p.ativo?' ('+p.ativo+')':'')+' | '+(p.tipo||'')+' | dose '+(p.dose||'—')+' | R$ '+Number(p.preco).toFixed(2).replace('.',',')+'/'+(p.un||'un')+(p.qtd!==''&&p.qtd!=null?' | estoque '+p.qtd:''));
