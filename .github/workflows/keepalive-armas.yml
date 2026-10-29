@@ -1,0 +1,19 @@
+name: Manter Supabase Armas Adam ativo
+
+on:
+  schedule:
+    - cron: '43 13 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessa o banco do Armas Adam
+        run: |
+          curl -sS -o /dev/null -w "REST %{http_code}\n" \
+            -H "apikey: sb_publishable_P10eo4efuC-Y6zT8t3mbGw_F75W73b-" \
+            "https://uoezohbbpkksvufusyic.supabase.co/rest/v1/"
+          curl -sS -o /dev/null -w "AUTH %{http_code}\n" \
+            -H "apikey: sb_publishable_P10eo4efuC-Y6zT8t3mbGw_F75W73b-" \
+            "https://uoezohbbpkksvufusyic.supabase.co/auth/v1/health"
